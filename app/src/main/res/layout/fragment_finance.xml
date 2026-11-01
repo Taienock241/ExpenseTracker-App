@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/canvas"
+    android:orientation="vertical">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="18dp"
+            android:paddingTop="20dp"
+            android:paddingEnd="18dp"
+            android:paddingBottom="20dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/brand_name"
+                android:textColor="@color/forest_700"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/financeBackButton"
+                android:layout_width="wrap_content"
+                android:layout_height="38dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_secondary_button"
+                android:text="@string/action_back"
+                android:textAllCaps="false"
+                android:textColor="@color/forest_700"
+                android:textSize="12sp"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/financeTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:textColor="@color/text_primary"
+                android:textSize="25sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/financeSubtitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="16dp"
+                android:textColor="@color/text_muted"
+                android:textSize="13sp" />
+
+            <LinearLayout
+                android:id="@+id/financeSummaryCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_hero"
+                android:orientation="vertical"
+                android:padding="17dp">
+
+                <TextView
+                    android:id="@+id/financeSummaryLabel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="#C1D5CB"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/financeSummaryAmount"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textColor="@color/white"
+                    android:textSize="24sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/financeSummaryNote"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textColor="#C1D5CB"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/transactionSearchRow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <EditText
+                    android:id="@+id/transactionSearch"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:background="@drawable/bg_input"
+                    android:hint="@string/transaction_search_hint"
+                    android:inputType="text"
+                    android:paddingStart="13dp"
+                    android:paddingEnd="13dp"
+                    android:singleLine="true"
+                    android:textSize="14sp" />
+
+                <Spinner
+                    android:id="@+id/transactionTypeFilter"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:layout_marginTop="6dp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/financeRowsContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:orientation="vertical" />
+
+        </LinearLayout>
+    </ScrollView>
+
+    <Button
+        android:id="@+id/financeAddButton"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginStart="18dp"
+        android:layout_marginEnd="18dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="10dp"
+        android:background="@drawable/bg_primary_button"
+        android:textAllCaps="false"
+        android:textColor="@color/white"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+</LinearLayout>

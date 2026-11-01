@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_main"
+    app:startDestination="@id/dashboardFragment">
+
+    <fragment
+        android:id="@+id/dashboardFragment"
+        android:name="com.example.pesatrackexpensetrackapp.ui.dashboard.DashboardFragment"
+        android:label="@string/nav_dashboard" />
+
+    <fragment
+        android:id="@+id/transactionsFragment"
+        android:name="com.example.pesatrackexpensetrackapp.ui.main.FinanceFeatureFragment"
+        android:label="@string/transactions_title">
+        <argument android:name="title" app:argType="reference" android:defaultValue="@string/transactions_title" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/budgetsFragment"
+        android:name="com.example.pesatrackexpensetrackapp.ui.main.FinanceFeatureFragment"
+        android:label="@string/budgets_title">
+        <argument android:name="title" app:argType="reference" android:defaultValue="@string/budgets_title" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/reportsFragment"
+        android:name="com.example.pesatrackexpensetrackapp.ui.main.FinanceFeatureFragment"
+        android:label="@string/reports_title">
+        <argument android:name="title" app:argType="reference" android:defaultValue="@string/reports_title" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/moreFragment"
+        android:name="com.example.pesatrackexpensetrackapp.ui.main.MoreFragment"
+        android:label="@string/more_title" />
+
+    <fragment
+        android:id="@+id/transactionFormFragment"
+        android:name="com.example.pesatrackexpensetrackapp.ui.main.FinanceFeatureFragment"
+        android:label="@string/transaction_form_title">
+        <argument android:name="title" app:argType="reference" android:defaultValue="@string/transaction_form_title" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/categoriesFragment"
+        android:name="com.example.pesatrackexpensetrackapp.ui.main.FinanceFeatureFragment"
+        android:label="@string/categories_title">
+        <argument android:name="title" app:argType="reference" android:defaultValue="@string/categories_title" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/accountsFragment"
+        android:name="com.example.pesatrackexpensetrackapp.ui.main.FinanceFeatureFragment"
+        android:label="@string/accounts_title">
+        <argument android:name="title" app:argType="reference" android:defaultValue="@string/accounts_title" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/goalsFragment"
+        android:name="com.example.pesatrackexpensetrackapp.ui.main.FinanceFeatureFragment"
+        android:label="@string/goals_title">
+        <argument android:name="title" app:argType="reference" android:defaultValue="@string/goals_title" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/notificationsFragment"
+        android:name="com.example.pesatrackexpensetrackapp.ui.main.FinanceFeatureFragment"
+        android:label="@string/notifications_title">
+        <argument android:name="title" app:argType="reference" android:defaultValue="@string/notifications_title" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/profileFragment"
+        android:name="com.example.pesatrackexpensetrackapp.ui.main.FinanceFeatureFragment"
+        android:label="@string/profile_title">
+        <argument android:name="title" app:argType="reference" android:defaultValue="@string/profile_title" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/recurringFragment"
+        android:name="com.example.pesatrackexpensetrackapp.ui.main.FinanceFeatureFragment"
+        android:label="@string/recurring_title">
+        <argument android:name="title" app:argType="reference" android:defaultValue="@string/recurring_title" />
+    </fragment>
+</navigation>

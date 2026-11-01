@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/canvas"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="14dp"
+            android:text="@string/more_title"
+            android:textColor="@color/text_primary"
+            android:textSize="26sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/categoriesButton"
+            style="@style/MoreMenuButton"
+            android:text="@string/more_categories" />
+
+        <Button
+            android:id="@+id/accountsButton"
+            style="@style/MoreMenuButton"
+            android:text="@string/more_accounts" />
+
+        <Button
+            android:id="@+id/goalsButton"
+            style="@style/MoreMenuButton"
+            android:text="@string/more_goals" />
+
+        <Button
+            android:id="@+id/recurringButton"
+            style="@style/MoreMenuButton"
+            android:text="@string/more_recurring" />
+
+        <Button
+            android:id="@+id/notificationsButton"
+            style="@style/MoreMenuButton"
+            android:text="@string/more_notifications" />
+
+        <Button
+            android:id="@+id/profileButton"
+            style="@style/MoreMenuButton"
+            android:text="@string/more_profile" />
+
+        <Button
+            android:id="@+id/signOutButton"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:layout_marginTop="18dp"
+            android:background="@drawable/bg_secondary_button"
+            android:text="@string/action_sign_out"
+            android:textAllCaps="false"
+            android:textColor="@color/coral"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+</ScrollView>
