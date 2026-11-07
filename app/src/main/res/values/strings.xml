@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">PesaTrack</string>
+    <string name="app_name">expenseTrackerApp</string>
     <string name="brand_name">PesaTrack</string>
     <string name="welcome_title">Take control of your money</string>
     <string name="welcome_body">Track everyday spending, plan your budget, and see where your money goes.</string>

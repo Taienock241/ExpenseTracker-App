@@ -1,9 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Primary Brand Aliases (Mapped to your existing forest greens) -->
-    <color name="primary">@color/forest_700</color>
-    <color name="primary_variant">@color/forest_900</color>
-    <color name="on_primary">@color/white</color>
     <color name="forest_950">#0B2D24</color>
     <color name="forest_900">#103F31</color>
     <color name="forest_700">#176B4D</color>
