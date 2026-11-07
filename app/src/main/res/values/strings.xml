@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">expenseTrackerApp</string>
+    <string name="app_name">Expense Tracker</string>
     <string name="brand_name">PesaTrack</string>
     <string name="welcome_title">Take control of your money</string>
     <string name="welcome_body">Track everyday spending, plan your budget, and see where your money goes.</string>
@@ -10,6 +10,11 @@
     <string name="action_back">‹  Back</string>
     <string name="login_title">Welcome back</string>
     <string name="login_subtitle">Sign in to continue to your money overview.</string>
+    <string name="login_form_heading">Your account</string>
+    <string name="login_form_hint">Enter your details to pick up where you left off.</string>
+    <string name="login_email_label">EMAIL ADDRESS</string>
+    <string name="login_password_label">PASSWORD</string>
+    <string name="login_privacy_note">Your financial information stays private and secure.</string>
     <string name="register_title">Create your account</string>
     <string name="register_subtitle">A simple place to keep your finances organized.</string>
     <string name="reset_title">Reset your password</string>
