@@ -1,12 +1,15 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Theme.PesaTrackExpenseTrackAPP" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Primary brand color (Forest Green) -->
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorPrimaryVariant">@color/primary_variant</item>
+        <item name="colorOnPrimary">@color/on_primary</item>
 
-    <style name="Theme.PesaTrackExpenseTrackAPP" parent="android:Theme.Material.Light.NoActionBar">
-        <item name="android:fontFamily">sans</item>
-        <item name="android:colorAccent">@color/forest_700</item>
+        <!-- Status bar color -->
+        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+
+        <!-- Window Background -->
         <item name="android:windowBackground">@color/canvas</item>
-        <item name="android:statusBarColor">@color/canvas</item>
-        <item name="android:windowLightStatusBar">true</item>
-        <item name="android:navigationBarColor">@color/canvas</item>
     </style>
 </resources>

@@ -1,4 +1,4 @@
-package com.example.pesatrackexpensetrackapp
+package com.pesatrack.app
 
 import org.junit.Test
 
