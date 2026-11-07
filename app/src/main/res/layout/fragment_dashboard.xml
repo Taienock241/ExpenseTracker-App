@@ -137,6 +137,16 @@
             </LinearLayout>
         </LinearLayout>
 
+        <!-- 📊 NEW: Dashboard Pie Chart -->
+        <com.github.mikephil.charting.charts.PieChart
+            android:id="@+id/dashboardPieChart"
+            android:layout_width="match_parent"
+            android:layout_height="250dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:layout_marginBottom="8dp" />
+
         <TextView
             android:id="@+id/openBudgetsButton"
             android:layout_width="match_parent"

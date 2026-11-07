@@ -6,7 +6,7 @@
 
     <fragment
         android:id="@+id/welcomeFragment"
-        android:name="com.example.pesatrackexpensetrackapp.ui.auth.WelcomeFragment"
+        android:name="com.pesatrack.app.ui.auth.WelcomeFragment"
         android:label="@string/brand_name">
         <action
             android:id="@+id/action_welcome_to_login"
@@ -18,7 +18,7 @@
 
     <fragment
         android:id="@+id/loginFragment"
-        android:name="com.example.pesatrackexpensetrackapp.ui.auth.LoginFragment"
+        android:name="com.pesatrack.app.ui.auth.LoginFragment"
         android:label="@string/login_title">
         <action
             android:id="@+id/action_login_to_register"
@@ -30,7 +30,7 @@
 
     <fragment
         android:id="@+id/registerFragment"
-        android:name="com.example.pesatrackexpensetrackapp.ui.auth.RegisterFragment"
+        android:name="com.pesatrack.app.ui.auth.RegisterFragment"
         android:label="@string/register_title">
         <action
             android:id="@+id/action_register_to_login"
@@ -39,7 +39,7 @@
 
     <fragment
         android:id="@+id/forgotPasswordFragment"
-        android:name="com.example.pesatrackexpensetrackapp.ui.auth.ForgotPasswordFragment"
+        android:name="com.pesatrack.app.ui.auth.ForgotPasswordFragment"
         android:label="@string/reset_title">
         <action
             android:id="@+id/action_forgot_to_login"

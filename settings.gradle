@@ -9,6 +9,7 @@ pluginManagement {
         }
         mavenCentral()
         gradlePluginPortal()
+        maven { url 'https://jitpack.io' } // <-- ADDED FOR MPAndroidChart
     }
 }
 plugins {
@@ -19,8 +20,9 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven { url 'https://jitpack.io' } // <-- ADDED FOR MPAndroidChart
     }
 }
 
-rootProject.name = "PesaTrack ExpenseTrackAPP"
+rootProject.name = "PesaTrack"
 include ':app'
