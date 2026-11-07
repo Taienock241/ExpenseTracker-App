@@ -6,7 +6,6 @@
     android:background="@color/canvas"
     android:orientation="vertical">
 
-    <!-- Main Content Area -->
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/mainNavHost"
         android:name="androidx.navigation.fragment.NavHostFragment"
@@ -16,16 +15,76 @@
         app:defaultNavHost="true"
         app:navGraph="@navigation/nav_main" />
 
-    <!-- Professional Bottom Navigation -->
-    <com.google.android.material.bottomnavigation.BottomNavigationView
-        android:id="@+id/bottom_navigation"
+    <LinearLayout
+        android:id="@+id/bottomNavigation"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="64dp"
         android:background="@color/surface"
-        app:elevation="8dp"
-        app:itemIconTint="@color/bottom_nav_colors"
-        app:itemTextColor="@color/bottom_nav_colors"
-        app:labelVisibilityMode="labeled"
-        app:menu="@menu/bottom_nav_menu" />
+        android:elevation="8dp"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp">
 
+        <Button
+            android:id="@+id/navHomeButton"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@android:color/transparent"
+            android:minWidth="0dp"
+            android:text="@string/nav_dashboard"
+            android:textAllCaps="false"
+            android:textColor="@color/forest_700"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/navTransactionsButton"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@android:color/transparent"
+            android:minWidth="0dp"
+            android:text="@string/nav_transactions"
+            android:textAllCaps="false"
+            android:textColor="@color/text_muted"
+            android:textSize="10sp" />
+
+        <Button
+            android:id="@+id/navBudgetsButton"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@android:color/transparent"
+            android:minWidth="0dp"
+            android:text="@string/nav_budgets"
+            android:textAllCaps="false"
+            android:textColor="@color/text_muted"
+            android:textSize="10sp" />
+
+        <Button
+            android:id="@+id/navReportsButton"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@android:color/transparent"
+            android:minWidth="0dp"
+            android:text="@string/nav_reports"
+            android:textAllCaps="false"
+            android:textColor="@color/text_muted"
+            android:textSize="10sp" />
+
+        <Button
+            android:id="@+id/navMoreButton"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@android:color/transparent"
+            android:minWidth="0dp"
+            android:text="@string/nav_more"
+            android:textAllCaps="false"
+            android:textColor="@color/text_muted"
+            android:textSize="10sp" />
+    </LinearLayout>
 </LinearLayout>
