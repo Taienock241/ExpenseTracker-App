@@ -56,20 +56,23 @@ class FinanceViewModel(
         }
     }
 
-    fun saveTransaction(value: FinanceTransaction) = perform("Transaction saved") { repository.saveTransaction(it, value, ::finish) }
-    fun deleteTransaction(id: String) = perform("Transaction deleted") { repository.deleteTransaction(it, id, ::finish) }
-    fun saveCategory(value: FinanceCategory) = perform("Category saved") { repository.saveCategory(it, value, ::finish) }
-    fun archiveCategory(value: FinanceCategory) = perform("Category archived") { repository.archiveCategory(it, value, ::finish) }
-    fun saveAccount(value: FinanceAccount) = perform("Account saved") { repository.saveAccount(it, value, ::finish) }
-    fun archiveAccount(value: FinanceAccount) = perform("Account archived") { repository.archiveAccount(it, value, ::finish) }
-    fun saveBudget(value: MonthlyBudget) = perform("Budget saved") { repository.saveBudget(it, value, ::finish) }
-    fun saveGoal(value: SavingsGoal) = perform("Savings goal saved") { repository.saveGoal(it, value, ::finish) }
-    fun addToGoal(goalId: String, amountMinor: Long) = perform("Contribution added") { repository.addToGoal(it, goalId, amountMinor, ::finish) }
-    fun archiveGoal(value: SavingsGoal) = perform("Savings goal archived") { repository.archiveGoal(it, value, ::finish) }
-    fun saveRecurring(value: RecurringItem) = perform("Recurring item saved") { repository.saveRecurring(it, value, ::finish) }
-    fun setRecurringActive(value: RecurringItem, active: Boolean) = perform(
-        if (active) "Recurring item resumed" else "Recurring item paused",
-    ) { repository.setRecurringActive(it, value, active, ::finish) }
+    fun saveTransaction(value: FinanceTransaction) = perform { repository.saveTransaction(it, value, done("Transaction saved")) }
+    fun deleteTransaction(id: String) = perform { repository.deleteTransaction(it, id, done("Transaction deleted")) }
+    fun saveCategory(value: FinanceCategory) = perform { repository.saveCategory(it, value, done("Category saved")) }
+    fun archiveCategory(value: FinanceCategory) = perform { repository.archiveCategory(it, value, done("Category archived")) }
+    fun saveAccount(value: FinanceAccount) = perform { repository.saveAccount(it, value, done("Account saved")) }
+    fun archiveAccount(value: FinanceAccount) = perform { repository.archiveAccount(it, value, done("Account archived")) }
+    fun saveBudget(value: MonthlyBudget) = perform { repository.saveBudget(it, value, done("Budget saved")) }
+    fun saveGoal(value: SavingsGoal) = perform { repository.saveGoal(it, value, done("Savings goal saved")) }
+    fun addToGoal(goalId: String, amountMinor: Long) = perform { repository.addToGoal(it, goalId, amountMinor, done("Contribution added")) }
+    fun archiveGoal(value: SavingsGoal) = perform { repository.archiveGoal(it, value, done("Savings goal archived")) }
+    fun saveRecurring(value: RecurringItem) = perform { repository.saveRecurring(it, value, done("Recurring item saved")) }
+    fun setRecurringActive(value: RecurringItem, active: Boolean) = perform {
+        repository.setRecurringActive(
+            it, value, active,
+            done(if (active) "Recurring item resumed" else "Recurring item paused"),
+        )
+    }
 
     fun updateDisplayName(name: String) {
         val userId = uid
@@ -96,7 +99,7 @@ class FinanceViewModel(
 
     fun reportError(message: String) { _message.value = Event(message) }
 
-    private fun perform(successMessage: String, action: (String) -> Unit) {
+    private fun perform(action: (String) -> Unit) {
         val userId = uid
         if (userId == null) {
             reportError("Please sign in again to continue.")
@@ -105,10 +108,13 @@ class FinanceViewModel(
         action(userId)
     }
 
-    private fun <T> finish(result: FinanceResult<T>) {
+    private fun <T> done(successMessage: String): (FinanceResult<T>) -> Unit =
+        { result -> finish(result, successMessage) }
+
+    private fun <T> finish(result: FinanceResult<T>, successMessage: String) {
         when (result) {
             is FinanceResult.Success -> {
-                _message.value = Event("Saved successfully")
+                _message.value = Event(successMessage)
                 _saved.value = Event(Unit)
             }
             is FinanceResult.Failure -> _message.value = Event(

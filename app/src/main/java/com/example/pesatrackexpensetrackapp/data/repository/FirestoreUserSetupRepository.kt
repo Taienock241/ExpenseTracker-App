@@ -7,7 +7,12 @@ import com.google.firebase.firestore.FirebaseFirestoreException
 class FirestoreUserSetupRepository(
     private val firestore: FirebaseFirestore,
 ) : UserSetupRepository {
-    override fun ensureDefaultsSeeded(uid: String, callback: (RepositoryResult) -> Unit) {
+    override fun ensureDefaultsSeeded(
+        uid: String,
+        displayName: String,
+        email: String,
+        callback: (RepositoryResult) -> Unit,
+    ) {
         val userReference = firestore.collection("users").document(uid)
         userReference.get().addOnCompleteListener { profileTask ->
             if (!profileTask.isSuccessful) {
@@ -16,12 +21,9 @@ class FirestoreUserSetupRepository(
             }
 
             val profile = profileTask.result
-            if (profile == null || !profile.exists()) {
-                callback(RepositoryResult.Failure(RepositoryFailure.UNKNOWN))
-                return@addOnCompleteListener
-            }
+            val profileMissing = profile == null || !profile.exists()
 
-            if ((profile.getLong("setupVersion") ?: 0L) >= 1L) {
+            if (!profileMissing && (profile?.getLong("setupVersion") ?: 0L) >= 1L) {
                 callback(RepositoryResult.Success)
                 return@addOnCompleteListener
             }
@@ -54,7 +56,23 @@ class FirestoreUserSetupRepository(
                     "createdAt" to FieldValue.serverTimestamp(),
                 ),
             )
-            batch.update(userReference, "setupVersion", 1)
+            if (profileMissing) {
+                // Names must be 2-40 characters to satisfy the Firestore rules.
+                val safeName = displayName.trim().ifBlank { email.substringBefore('@') }
+                    .take(40).let { if (it.length >= 2) it else "User" }
+                batch.set(
+                    userReference,
+                    mapOf(
+                        "displayName" to safeName,
+                        "email" to email,
+                        "currency" to "KES",
+                        "setupVersion" to 1,
+                        "createdAt" to FieldValue.serverTimestamp(),
+                    ),
+                )
+            } else {
+                batch.update(userReference, "setupVersion", 1)
+            }
             batch.commit().addOnCompleteListener { seedTask ->
                 if (seedTask.isSuccessful) {
                     callback(RepositoryResult.Success)

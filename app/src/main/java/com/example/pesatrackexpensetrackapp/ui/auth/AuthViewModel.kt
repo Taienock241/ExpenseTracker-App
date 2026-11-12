@@ -42,7 +42,7 @@ class AuthViewModel(
         _state.value = AuthUiState(isLoading = true)
         authRepository.signIn(email, password) { result ->
             when (result) {
-                is AuthResult.Success -> finishAuthentication(result.user.uid)
+                is AuthResult.Success -> finishAuthentication(result.user.uid, result.user.displayName, result.user.email)
                 is AuthResult.Failure -> _state.value = AuthUiState(
                     message = when (result.reason) {
                         AuthFailure.INVALID_CREDENTIALS -> R.string.error_invalid_credentials
@@ -89,7 +89,7 @@ class AuthViewModel(
                     email = email,
                 ) { profileResult ->
                     when (profileResult) {
-                        RepositoryResult.Success -> finishAuthentication(result.user.uid)
+                        RepositoryResult.Success -> finishAuthentication(result.user.uid, name, email)
                         is RepositoryResult.Failure -> {
                             authRepository.signOut()
                             _state.value = AuthUiState(message = R.string.error_profile_setup)
@@ -118,9 +118,8 @@ class AuthViewModel(
                     message = if (result.reason == RepositoryFailure.NETWORK) {
                         R.string.error_network
                     } else {
-                        R.string.message_reset_sent
+                        R.string.error_generic
                     },
-                    messageIsSuccess = result.reason != RepositoryFailure.NETWORK,
                 )
             }
         }
@@ -132,8 +131,8 @@ class AuthViewModel(
     private fun isValidPassword(password: String): Boolean =
         password.length >= 8 && password.any { it.isLetter() } && password.any { it.isDigit() }
 
-    private fun finishAuthentication(uid: String) {
-        userSetupRepository.ensureDefaultsSeeded(uid) { result ->
+    private fun finishAuthentication(uid: String, displayName: String, email: String) {
+        userSetupRepository.ensureDefaultsSeeded(uid, displayName, email) { result ->
             when (result) {
                 RepositoryResult.Success -> {
                     _state.value = AuthUiState()

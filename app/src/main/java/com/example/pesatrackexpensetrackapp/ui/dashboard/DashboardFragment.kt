@@ -53,6 +53,7 @@ class DashboardFragment : Fragment() {
         financeViewModel.transactions.observe(viewLifecycleOwner) { renderFinance() }
         financeViewModel.accounts.observe(viewLifecycleOwner) { renderFinance() }
         financeViewModel.budgets.observe(viewLifecycleOwner) { renderFinance() }
+        financeViewModel.categories.observe(viewLifecycleOwner) { renderFinance() }
     }
 
     private fun renderFinance() {
@@ -76,10 +77,15 @@ class DashboardFragment : Fragment() {
 
         val budgets = financeViewModel.budgets.value.orEmpty().filter { it.month == financeViewModel.currentMonth() }
         val budgetLimit = budgets.sumOf { it.amountLimitMinor }
+        // Compare only spending in budgeted categories against the category limits.
+        val budgetedCategoryIds = budgets.map { it.categoryId }.toSet()
+        val budgetedSpending = thisMonth
+            .filter { it.type == "EXPENSE" && it.categoryId in budgetedCategoryIds }
+            .sumOf { it.amountMinor }
         binding.openBudgetsButton.text = if (budgetLimit == 0L) {
             getString(R.string.dashboard_budget_hint)
         } else {
-            "Monthly budget  ·  ${money(expenses)} of ${money(budgetLimit)} used"
+            "Monthly budget  ·  ${money(budgetedSpending)} of ${money(budgetLimit)} used"
         }
 
         val container = binding.dashboardRecentContainer

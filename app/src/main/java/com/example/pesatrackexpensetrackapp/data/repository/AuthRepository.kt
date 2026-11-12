@@ -48,5 +48,14 @@ interface UserRepository {
 }
 
 interface UserSetupRepository {
-    fun ensureDefaultsSeeded(uid: String, callback: (RepositoryResult) -> Unit)
+    /**
+     * Seeds default categories/accounts. If the user's profile document is missing (for example registration
+     * was interrupted after the auth account was created) it is recreated from [displayName] and [email].
+     */
+    fun ensureDefaultsSeeded(
+        uid: String,
+        displayName: String,
+        email: String,
+        callback: (RepositoryResult) -> Unit,
+    )
 }

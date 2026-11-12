@@ -99,7 +99,7 @@ class FinanceFeatureFragment : Fragment() {
             event.getContentIfNotHandled()?.let { main.refreshCurrentUser() }
         }
         main.currentUserState.observe(viewLifecycleOwner) { if (screenId == R.id.profileFragment) render() }
-        if (screenId == R.id.transactionFormFragment && savedInstanceState == null) {
+        if (screenId == R.id.transactionFormFragment) {
             binding.financeAddButton.visibility = View.GONE
             binding.financeSummaryCard.visibility = View.GONE
             binding.financeRowsContainer.addView(text("Add an income or expense to your PesaTrack account.", 14, R.color.text_muted))
@@ -419,15 +419,18 @@ class FinanceFeatureFragment : Fragment() {
         val notes = input("Notes (optional)").apply { setSingleLine(false); minLines = 2; maxLines = 3; if (existing != null) setText(existing.notes) }
         val content = form(title, amount, type, categorySpinner, accountSpinner, dateButton, notes)
         AlertDialog.Builder(requireContext()).setTitle(if (existing == null) "Add transaction" else "Edit transaction")
-            .setView(content).setNegativeButton("Cancel", null).setPositiveButton("Save", null)
+            .setView(content).setNegativeButton("Cancel") { _, _ -> leaveFormScreen() }.setPositiveButton("Save", null)
             .create().also { dialog ->
                 activeDialog = dialog
+                dialog.setOnCancelListener { leaveFormScreen() }
                 dialog.setOnShowListener {
                     dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                         val amountMinor = parseAmount(amount.text.toString())
                         val selectedType = if (type.selectedItemPosition == 1) "INCOME" else "EXPENSE"
                         val selectedCategories = activeCategories.filter { it.type == selectedType }
                         val selectedAccount = accounts.getOrNull(accountSpinner.selectedItemPosition)
+                        if (title.text.toString().trim().length > 80) { title.error = "Use 80 characters or fewer"; return@setOnClickListener }
+                        if (notes.text.toString().trim().length > 500) { notes.error = "Use 500 characters or fewer"; return@setOnClickListener }
                         if (title.text.toString().isBlank() || amountMinor == null || amountMinor <= 0L || selectedCategories.isEmpty() || selectedAccount == null) {
                             amount.error = if (amountMinor == null || amountMinor <= 0) "Enter an amount greater than zero" else null
                             if (title.text.isBlank()) title.error = "Enter a title"
@@ -446,6 +449,10 @@ class FinanceFeatureFragment : Fragment() {
             }
     }
 
+    private fun leaveFormScreen() {
+        if (_binding != null && screenId == R.id.transactionFormFragment) findNavController().popBackStack()
+    }
+
     private fun showBudgetDialog() {
         val categories = activeCategories.filter { it.type == "EXPENSE" }
         if (categories.isEmpty()) { toast("Add an expense category first."); return }
@@ -462,7 +469,7 @@ class FinanceFeatureFragment : Fragment() {
         val name = input("Category name")
         val type = spinner(listOf("Expense", "Income"))
         askForm("Add category", form(name, type)) {
-            if (name.text.isBlank()) { name.error = "Enter a category name"; false }
+            if (name.text.isBlank() || name.text.toString().trim().length > 30) { name.error = "Enter a name up to 30 characters"; false }
             else { finance.saveCategory(FinanceCategory(name = name.text.toString(), type = if (type.selectedItemPosition == 1) "INCOME" else "EXPENSE", colorHex = "#2F9B72", sortOrder = activeCategories.size)); true }
         }
     }
@@ -473,7 +480,7 @@ class FinanceFeatureFragment : Fragment() {
         val opening = input("Opening balance in KSh").apply { inputType = 8194; setText("0") }
         askForm("Add account", form(name, type, opening)) {
             val balance = parseAmount(opening.text.toString())
-            if (name.text.isBlank() || balance == null || balance < 0L) { name.error = if (name.text.isBlank()) "Enter a name" else null; opening.error = if (balance == null || balance < 0) "Enter a valid balance" else null; false }
+            if (name.text.isBlank() || name.text.toString().trim().length > 30 || balance == null || balance < 0L) { name.error = if (name.text.isBlank() || name.text.toString().trim().length > 30) "Enter a name up to 30 characters" else null; opening.error = if (balance == null || balance < 0) "Enter a valid balance" else null; false }
             else { finance.saveAccount(FinanceAccount(name = name.text.toString(), type = listOf("CASH", "BANK", "MPESA", "OTHER")[type.selectedItemPosition], openingBalanceMinor = balance)); true }
         }
     }
@@ -489,7 +496,7 @@ class FinanceFeatureFragment : Fragment() {
         }
         askForm("Create savings goal", form(name, target, dateButton)) {
             val amount = parseAmount(target.text.toString())
-            if (name.text.isBlank() || amount == null || amount <= 0) { name.error = if (name.text.isBlank()) "Enter a goal name" else null; target.error = if (amount == null || amount <= 0) "Enter a positive target" else null; false }
+            if (name.text.isBlank() || name.text.toString().trim().length > 60 || amount == null || amount <= 0) { name.error = if (name.text.isBlank() || name.text.toString().trim().length > 60) "Enter a name up to 60 characters" else null; target.error = if (amount == null || amount <= 0) "Enter a positive target" else null; false }
             else { finance.saveGoal(SavingsGoal(name = name.text.toString(), targetMinor = amount, targetDateMillis = dueAt)); true }
         }
     }
@@ -510,8 +517,8 @@ class FinanceFeatureFragment : Fragment() {
         val account = spinner(accounts.map { it.name })
         askForm("Add recurring item", form(title, amount, type, frequency, category, account)) {
             val minor = parseAmount(amount.text.toString())
-            if (title.text.isBlank() || minor == null || minor <= 0 || categories.isEmpty() || accounts.isEmpty()) {
-                if (title.text.isBlank()) title.error = "Enter a title"
+            if (title.text.isBlank() || title.text.toString().trim().length > 80 || minor == null || minor <= 0 || categories.isEmpty() || accounts.isEmpty()) {
+                if (title.text.isBlank() || title.text.toString().trim().length > 80) title.error = "Enter a title up to 80 characters"
                 if (minor == null || minor <= 0) amount.error = "Enter a positive amount"
                 if (categories.isEmpty() || accounts.isEmpty()) toast("Create a category and account first.")
                 false
@@ -627,5 +634,10 @@ class FinanceFeatureFragment : Fragment() {
         override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
     }
 
-    override fun onDestroyView() { super.onDestroyView(); _binding = null }
+    override fun onDestroyView() {
+        activeDialog?.dismiss()
+        activeDialog = null
+        super.onDestroyView()
+        _binding = null
+    }
 }

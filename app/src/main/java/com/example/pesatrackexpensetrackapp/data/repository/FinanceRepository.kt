@@ -46,6 +46,10 @@ class FirestoreFinanceRepository(
 ) : FinanceRepository {
     private fun user(uid: String) = firestore.collection("users").document(uid)
 
+    /** createdAt must only be written when a document is first created, never on edits. */
+    private fun createdAtFor(isNew: Boolean): Map<String, Any> =
+        if (isNew) mapOf("createdAt" to FieldValue.serverTimestamp()) else emptyMap()
+
     private fun <T> watch(
         uid: String,
         path: String,
@@ -91,8 +95,7 @@ class FirestoreFinanceRepository(
             "title" to value.title.trim(), "type" to value.type, "amountMinor" to value.amountMinor,
             "categoryId" to value.categoryId, "accountId" to value.accountId,
             "occurredAt" to Timestamp(java.util.Date(value.occurredAtMillis)), "notes" to value.notes.trim(),
-            "createdAt" to FieldValue.serverTimestamp(),
-        )
+        ) + createdAtFor(value.id.isBlank())
         ref.set(map, SetOptions.merge()).complete(ref.id, callback)
     }
 
@@ -102,13 +105,12 @@ class FirestoreFinanceRepository(
     override fun saveCategory(uid: String, value: FinanceCategory, callback: (FinanceResult<String>) -> Unit) {
         val ref = value.id.takeIf(String::isNotBlank)?.let { user(uid).collection("categories").document(it) }
             ?: user(uid).collection("categories").document()
-        val old = mapOf("createdAt" to Timestamp.now())
         val data = mapOf(
             "name" to value.name.trim(), "type" to value.type, "iconKey" to value.iconKey,
             "colorHex" to value.colorHex, "builtIn" to value.builtIn, "archived" to value.archived,
             "sortOrder" to value.sortOrder,
-        )
-        ref.set(data + old, SetOptions.merge()).complete(ref.id, callback)
+        ) + createdAtFor(value.id.isBlank())
+        ref.set(data, SetOptions.merge()).complete(ref.id, callback)
     }
 
     override fun archiveCategory(uid: String, value: FinanceCategory, callback: (FinanceResult<Unit>) -> Unit) =
@@ -119,8 +121,8 @@ class FirestoreFinanceRepository(
             ?: user(uid).collection("accounts").document()
         val data = mapOf(
             "name" to value.name.trim(), "type" to value.type, "openingBalanceMinor" to value.openingBalanceMinor,
-            "archived" to value.archived, "createdAt" to Timestamp.now(),
-        )
+            "archived" to value.archived,
+        ) + createdAtFor(value.id.isBlank())
         ref.set(data, SetOptions.merge()).complete(ref.id, callback)
     }
 
@@ -129,11 +131,19 @@ class FirestoreFinanceRepository(
 
     override fun saveBudget(uid: String, value: MonthlyBudget, callback: (FinanceResult<String>) -> Unit) {
         val id = "${value.month}_${value.categoryId}"
-        user(uid).collection("budgets").document(id).set(
-            mapOf("month" to value.month, "categoryId" to value.categoryId,
-                "amountLimitMinor" to value.amountLimitMinor, "createdAt" to Timestamp.now()),
-            SetOptions.merge(),
-        ).complete(id, callback)
+        val ref = user(uid).collection("budgets").document(id)
+        firestore.runTransaction { transaction ->
+            val exists = transaction.get(ref).exists()
+            transaction.set(
+                ref,
+                mapOf(
+                    "month" to value.month, "categoryId" to value.categoryId,
+                    "amountLimitMinor" to value.amountLimitMinor,
+                ) + createdAtFor(!exists),
+                SetOptions.merge(),
+            )
+            Unit
+        }.complete(id, callback)
     }
 
     override fun saveGoal(uid: String, value: SavingsGoal, callback: (FinanceResult<String>) -> Unit) {
@@ -142,8 +152,7 @@ class FirestoreFinanceRepository(
         val data = mapOf(
             "name" to value.name.trim(), "targetMinor" to value.targetMinor, "savedMinor" to value.savedMinor,
             "targetDate" to Timestamp(java.util.Date(value.targetDateMillis)), "archived" to value.archived,
-            "createdAt" to Timestamp.now(),
-        )
+        ) + createdAtFor(value.id.isBlank())
         ref.set(data, SetOptions.merge()).complete(ref.id, callback)
     }
 
@@ -165,8 +174,7 @@ class FirestoreFinanceRepository(
             "title" to value.title.trim(), "type" to value.type, "amountMinor" to value.amountMinor,
             "categoryId" to value.categoryId, "accountId" to value.accountId, "frequency" to value.frequency,
             "nextDueAt" to Timestamp(java.util.Date(value.nextDueAtMillis)), "active" to value.active,
-            "createdAt" to Timestamp.now(),
-        )
+        ) + createdAtFor(value.id.isBlank())
         ref.set(data, SetOptions.merge()).complete(ref.id, callback)
     }
 
