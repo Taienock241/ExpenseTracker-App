@@ -11,6 +11,7 @@ import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.Spinner
@@ -99,7 +100,7 @@ class FinanceFeatureFragment : Fragment() {
             event.getContentIfNotHandled()?.let { main.refreshCurrentUser() }
         }
         main.currentUserState.observe(viewLifecycleOwner) { if (screenId == R.id.profileFragment) render() }
-        if (screenId == R.id.transactionFormFragment && savedInstanceState == null) {
+        if (screenId == R.id.transactionFormFragment) {
             binding.financeAddButton.visibility = View.GONE
             binding.financeSummaryCard.visibility = View.GONE
             binding.financeRowsContainer.addView(text("Add an income or expense to your PesaTrack account.", 14, R.color.text_muted))
@@ -162,16 +163,17 @@ class FinanceFeatureFragment : Fragment() {
             typeMatches && (query.isBlank() || item.title.lowercase().contains(query) || item.notes.lowercase().contains(query) || categoryName.lowercase().contains(query))
         }
         section(rows, "Recent activity")
+        if (all.isNotEmpty()) rows.addView(text("Tap a transaction to edit or delete it.", 12, R.color.text_muted).apply { setPadding(0, 0, 0, dp(8)) })
         if (all.isEmpty()) empty(rows, "No transactions yet", "Add your first income or expense to see it here.")
         all.take(100).forEach { item ->
             val category = finance.categories.value.orEmpty().firstOrNull { it.id == item.categoryId }?.name ?: "Category"
             val account = finance.accounts.value.orEmpty().firstOrNull { it.id == item.accountId }?.name ?: "Account"
             card(rows).apply {
                 orientation = LinearLayout.VERTICAL
-                addView(rowText(item.title, money(item.amountMinor), item.type == "INCOME"))
+                addView(rowText(item.title, money(item.amountMinor), item.type == "INCOME", editable = true))
                 addView(text("$category  ·  $account", 12, R.color.text_muted).apply { setPadding(0, dp(5), 0, 0) })
                 addView(text(date(item.occurredAtMillis), 11, R.color.text_muted).apply { setPadding(0, dp(3), 0, 0) })
-                setOnClickListener { showTransactionActions(item) }
+                setOnClickListener { showTransactionDialog(item) }
             }
         }
     }
@@ -186,6 +188,7 @@ class FinanceFeatureFragment : Fragment() {
         binding.financeAddButton.visibility = View.VISIBLE
         binding.financeAddButton.text = "＋  Set a budget"
         section(rows, "Category budgets")
+        if (budgets.isNotEmpty()) rows.addView(text("Tap a budget to change its limit.", 12, R.color.text_muted).apply { setPadding(0, 0, 0, dp(8)) })
         if (budgets.isEmpty()) empty(rows, "No budgets yet", "Choose a category and set a monthly spending limit.")
         budgets.forEach { budget ->
             val category = finance.categories.value.orEmpty().firstOrNull { it.id == budget.categoryId }
@@ -193,7 +196,8 @@ class FinanceFeatureFragment : Fragment() {
                 it.type == "EXPENSE" && it.categoryId == budget.categoryId && isCurrentMonth(it.occurredAtMillis)
             }.sumOf { it.amountMinor }
             val card = card(rows)
-            card.addView(rowText(category?.name ?: "Category", money(budget.amountLimitMinor), false))
+            card.setOnClickListener { showBudgetDialog(budget) }
+            card.addView(rowText(category?.name ?: "Category", money(budget.amountLimitMinor), false, editable = true))
             card.addView(text("${money(categorySpent)} spent  ·  ${money((budget.amountLimitMinor - categorySpent).coerceAtLeast(0))} left", 12, R.color.text_muted).apply { setPadding(0, dp(7), 0, dp(5)) })
             card.addView(ProgressBar(requireContext(), null, android.R.attr.progressBarStyleHorizontal).apply {
                 max = 100; progress = ((categorySpent * 100 / budget.amountLimitMinor.coerceAtLeast(1)).toInt()).coerceIn(0, 100)
@@ -381,13 +385,6 @@ class FinanceFeatureFragment : Fragment() {
         }
     }
 
-    private fun showTransactionActions(item: FinanceTransaction) {
-        AlertDialog.Builder(requireContext()).setTitle(item.title)
-            .setItems(arrayOf("Edit transaction", "Delete transaction")) { _, choice ->
-                if (choice == 0) showTransactionDialog(item) else confirm("Delete transaction?", "This will remove it from your totals and reports.") { finance.deleteTransaction(item.id) }
-            }.show()
-    }
-
     private fun showTransactionDialog(existing: FinanceTransaction? = null) {
         val title = input("Title, for example groceries")
         val amount = input("Amount in KSh").apply { inputType = 8194; if (existing != null) setText(decimal(existing.amountMinor)) }
@@ -419,15 +416,23 @@ class FinanceFeatureFragment : Fragment() {
         val notes = input("Notes (optional)").apply { setSingleLine(false); minLines = 2; maxLines = 3; if (existing != null) setText(existing.notes) }
         val content = form(title, amount, type, categorySpinner, accountSpinner, dateButton, notes)
         AlertDialog.Builder(requireContext()).setTitle(if (existing == null) "Add transaction" else "Edit transaction")
-            .setView(content).setNegativeButton("Cancel", null).setPositiveButton("Save", null)
+            .setView(content).setNegativeButton("Cancel") { _, _ -> leaveFormScreen() }.setPositiveButton("Save", null)
+            .apply {
+                if (existing != null) setNeutralButton("Delete") { _, _ ->
+                    confirm("Delete transaction?", "This will remove it from your totals and reports.") { finance.deleteTransaction(existing.id) }
+                }
+            }
             .create().also { dialog ->
                 activeDialog = dialog
+                dialog.setOnCancelListener { leaveFormScreen() }
                 dialog.setOnShowListener {
                     dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                         val amountMinor = parseAmount(amount.text.toString())
                         val selectedType = if (type.selectedItemPosition == 1) "INCOME" else "EXPENSE"
                         val selectedCategories = activeCategories.filter { it.type == selectedType }
                         val selectedAccount = accounts.getOrNull(accountSpinner.selectedItemPosition)
+                        if (title.text.toString().trim().length > 80) { title.error = "Use 80 characters or fewer"; return@setOnClickListener }
+                        if (notes.text.toString().trim().length > 500) { notes.error = "Use 500 characters or fewer"; return@setOnClickListener }
                         if (title.text.toString().isBlank() || amountMinor == null || amountMinor <= 0L || selectedCategories.isEmpty() || selectedAccount == null) {
                             amount.error = if (amountMinor == null || amountMinor <= 0) "Enter an amount greater than zero" else null
                             if (title.text.isBlank()) title.error = "Enter a title"
@@ -446,12 +451,23 @@ class FinanceFeatureFragment : Fragment() {
             }
     }
 
-    private fun showBudgetDialog() {
+    private fun leaveFormScreen() {
+        if (_binding != null && screenId == R.id.transactionFormFragment) findNavController().popBackStack()
+    }
+
+    private fun showBudgetDialog(existing: MonthlyBudget? = null) {
         val categories = activeCategories.filter { it.type == "EXPENSE" }
         if (categories.isEmpty()) { toast("Add an expense category first."); return }
         val category = spinner(categories.map { it.name })
         val amount = input("Monthly limit in KSh").apply { inputType = 8194 }
-        askForm("Set monthly budget", form(category, amount)) {
+        if (existing != null) {
+            // Budgets are keyed by month + category, so when editing the category stays fixed.
+            val index = categories.indexOfFirst { it.id == existing.categoryId }
+            if (index >= 0) category.setSelection(index)
+            category.isEnabled = false
+            amount.setText(decimal(existing.amountLimitMinor))
+        }
+        askForm(if (existing == null) "Set monthly budget" else "Edit monthly budget", form(category, amount)) {
             val limit = parseAmount(amount.text.toString())
             if (limit == null || limit <= 0L) { amount.error = "Enter a positive limit"; false }
             else { finance.saveBudget(MonthlyBudget(month = finance.currentMonth(), categoryId = categories[category.selectedItemPosition].id, amountLimitMinor = limit)); true }
@@ -462,7 +478,7 @@ class FinanceFeatureFragment : Fragment() {
         val name = input("Category name")
         val type = spinner(listOf("Expense", "Income"))
         askForm("Add category", form(name, type)) {
-            if (name.text.isBlank()) { name.error = "Enter a category name"; false }
+            if (name.text.isBlank() || name.text.toString().trim().length > 30) { name.error = "Enter a name up to 30 characters"; false }
             else { finance.saveCategory(FinanceCategory(name = name.text.toString(), type = if (type.selectedItemPosition == 1) "INCOME" else "EXPENSE", colorHex = "#2F9B72", sortOrder = activeCategories.size)); true }
         }
     }
@@ -473,7 +489,7 @@ class FinanceFeatureFragment : Fragment() {
         val opening = input("Opening balance in KSh").apply { inputType = 8194; setText("0") }
         askForm("Add account", form(name, type, opening)) {
             val balance = parseAmount(opening.text.toString())
-            if (name.text.isBlank() || balance == null || balance < 0L) { name.error = if (name.text.isBlank()) "Enter a name" else null; opening.error = if (balance == null || balance < 0) "Enter a valid balance" else null; false }
+            if (name.text.isBlank() || name.text.toString().trim().length > 30 || balance == null || balance < 0L) { name.error = if (name.text.isBlank() || name.text.toString().trim().length > 30) "Enter a name up to 30 characters" else null; opening.error = if (balance == null || balance < 0) "Enter a valid balance" else null; false }
             else { finance.saveAccount(FinanceAccount(name = name.text.toString(), type = listOf("CASH", "BANK", "MPESA", "OTHER")[type.selectedItemPosition], openingBalanceMinor = balance)); true }
         }
     }
@@ -489,7 +505,7 @@ class FinanceFeatureFragment : Fragment() {
         }
         askForm("Create savings goal", form(name, target, dateButton)) {
             val amount = parseAmount(target.text.toString())
-            if (name.text.isBlank() || amount == null || amount <= 0) { name.error = if (name.text.isBlank()) "Enter a goal name" else null; target.error = if (amount == null || amount <= 0) "Enter a positive target" else null; false }
+            if (name.text.isBlank() || name.text.toString().trim().length > 60 || amount == null || amount <= 0) { name.error = if (name.text.isBlank() || name.text.toString().trim().length > 60) "Enter a name up to 60 characters" else null; target.error = if (amount == null || amount <= 0) "Enter a positive target" else null; false }
             else { finance.saveGoal(SavingsGoal(name = name.text.toString(), targetMinor = amount, targetDateMillis = dueAt)); true }
         }
     }
@@ -510,8 +526,8 @@ class FinanceFeatureFragment : Fragment() {
         val account = spinner(accounts.map { it.name })
         askForm("Add recurring item", form(title, amount, type, frequency, category, account)) {
             val minor = parseAmount(amount.text.toString())
-            if (title.text.isBlank() || minor == null || minor <= 0 || categories.isEmpty() || accounts.isEmpty()) {
-                if (title.text.isBlank()) title.error = "Enter a title"
+            if (title.text.isBlank() || title.text.toString().trim().length > 80 || minor == null || minor <= 0 || categories.isEmpty() || accounts.isEmpty()) {
+                if (title.text.isBlank() || title.text.toString().trim().length > 80) title.error = "Enter a title up to 80 characters"
                 if (minor == null || minor <= 0) amount.error = "Enter a positive amount"
                 if (categories.isEmpty() || accounts.isEmpty()) toast("Create a category and account first.")
                 false
@@ -596,10 +612,17 @@ class FinanceFeatureFragment : Fragment() {
         parent.addView(this, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10) })
     }
 
-    private fun rowText(left: String, right: String, positive: Boolean): LinearLayout = LinearLayout(requireContext()).apply {
+    private fun rowText(left: String, right: String, positive: Boolean, editable: Boolean = false): LinearLayout = LinearLayout(requireContext()).apply {
         orientation = LinearLayout.HORIZONTAL; gravity = android.view.Gravity.CENTER_VERTICAL
         addView(text(left, 14, R.color.text_primary, true), LinearLayout.LayoutParams(0, -2, 1f))
         addView(text(right, 14, if (positive) R.color.forest_700 else R.color.text_primary, true).apply { gravity = android.view.Gravity.END })
+        if (editable) {
+            addView(ImageView(requireContext()).apply {
+                setImageResource(R.drawable.ic_edit)
+                contentDescription = "Edit"
+                imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.forest_700)
+            }, LinearLayout.LayoutParams(dp(16), dp(16)).apply { marginStart = dp(8) })
+        }
     }
 
     private fun text(value: String, sp: Int, color: Int, bold: Boolean = false) = TextView(requireContext()).apply {
@@ -627,5 +650,10 @@ class FinanceFeatureFragment : Fragment() {
         override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
     }
 
-    override fun onDestroyView() { super.onDestroyView(); _binding = null }
+    override fun onDestroyView() {
+        activeDialog?.dismiss()
+        activeDialog = null
+        super.onDestroyView()
+        _binding = null
+    }
 }

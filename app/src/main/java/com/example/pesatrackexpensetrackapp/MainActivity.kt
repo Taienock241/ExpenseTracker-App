@@ -1,6 +1,7 @@
 package com.example.pesatrackexpensetrackapp
 
 import android.content.Intent
+import android.graphics.Typeface
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -9,7 +10,6 @@ import android.view.KeyEvent
 import android.view.MotionEvent
 import android.widget.Button
 import androidx.activity.viewModels
-import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
@@ -157,13 +157,8 @@ class MainActivity : FragmentActivity() {
     ) {
         destinations.forEach { (button, destination) ->
             val selected = destination == currentDestination
-            button.setTextColor(
-                ContextCompat.getColor(
-                    this,
-                    if (selected) R.color.forest_700 else R.color.text_muted,
-                ),
-            )
             button.isSelected = selected
+            button.setTypeface(null, if (selected) Typeface.BOLD else Typeface.NORMAL)
         }
     }
 
