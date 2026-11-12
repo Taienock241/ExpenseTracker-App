@@ -7,19 +7,22 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:orientation="vertical">
 
+        <!-- Hero: takes all the space not needed by the buttons, content centred in it -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="280dp"
-            android:background="@color/forest_900"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_login_hero"
             android:gravity="center_vertical"
+            android:minHeight="320dp"
             android:orientation="vertical"
             android:paddingStart="26dp"
-            android:paddingTop="28dp"
+            android:paddingTop="40dp"
             android:paddingEnd="26dp"
-            android:paddingBottom="24dp">
+            android:paddingBottom="40dp">
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -28,76 +31,60 @@
                 android:orientation="horizontal">
 
                 <TextView
-                    android:layout_width="42dp"
-                    android:layout_height="42dp"
+                    android:layout_width="46dp"
+                    android:layout_height="46dp"
                     android:background="@drawable/bg_brand_mark"
                     android:gravity="center"
                     android:text="P"
                     android:textColor="@color/white"
-                    android:textSize="21sp"
+                    android:textSize="22sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="10dp"
+                    android:layout_marginStart="12dp"
                     android:text="@string/brand_name"
                     android:textColor="@color/white"
-                    android:textSize="19sp"
+                    android:textSize="21sp"
                     android:textStyle="bold" />
             </LinearLayout>
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="34dp"
+                android:layout_marginTop="48dp"
                 android:text="@string/welcome_highlight"
                 android:textColor="#B7CEC4"
-                android:textSize="13sp" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="@string/welcome_title"
-                android:textColor="@color/white"
-                android:textSize="30sp"
-                android:textStyle="bold" />
+                android:textSize="14sp" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
-                android:text="@string/welcome_body"
-                android:textColor="#D5E4DC"
-                android:textSize="15sp" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingStart="24dp"
-            android:paddingTop="28dp"
-            android:paddingEnd="24dp"
-            android:paddingBottom="28dp">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
                 android:text="@string/welcome_title"
-                android:textColor="@color/text_primary"
-                android:textSize="25sp"
+                android:textColor="@color/white"
+                android:textSize="34sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:layout_marginBottom="22dp"
+                android:layout_marginTop="14dp"
                 android:text="@string/welcome_body"
-                android:textColor="@color/text_muted"
-                android:textSize="15sp" />
+                android:textColor="#D5E4DC"
+                android:textSize="16sp" />
+        </LinearLayout>
+
+        <!-- Actions: always anchored at the bottom of the screen -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="24dp"
+            android:paddingTop="26dp"
+            android:paddingEnd="24dp"
+            android:paddingBottom="30dp">
 
             <Button
                 android:id="@+id/createAccountButton"
