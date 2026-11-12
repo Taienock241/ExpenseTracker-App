@@ -11,6 +11,7 @@ import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.Spinner
@@ -169,7 +170,7 @@ class FinanceFeatureFragment : Fragment() {
             val account = finance.accounts.value.orEmpty().firstOrNull { it.id == item.accountId }?.name ?: "Account"
             card(rows).apply {
                 orientation = LinearLayout.VERTICAL
-                addView(rowText(item.title, money(item.amountMinor), item.type == "INCOME"))
+                addView(rowText(item.title, money(item.amountMinor), item.type == "INCOME", editable = true))
                 addView(text("$category  ·  $account", 12, R.color.text_muted).apply { setPadding(0, dp(5), 0, 0) })
                 addView(text(date(item.occurredAtMillis), 11, R.color.text_muted).apply { setPadding(0, dp(3), 0, 0) })
                 setOnClickListener { showTransactionDialog(item) }
@@ -196,7 +197,7 @@ class FinanceFeatureFragment : Fragment() {
             }.sumOf { it.amountMinor }
             val card = card(rows)
             card.setOnClickListener { showBudgetDialog(budget) }
-            card.addView(rowText(category?.name ?: "Category", money(budget.amountLimitMinor), false))
+            card.addView(rowText(category?.name ?: "Category", money(budget.amountLimitMinor), false, editable = true))
             card.addView(text("${money(categorySpent)} spent  ·  ${money((budget.amountLimitMinor - categorySpent).coerceAtLeast(0))} left", 12, R.color.text_muted).apply { setPadding(0, dp(7), 0, dp(5)) })
             card.addView(ProgressBar(requireContext(), null, android.R.attr.progressBarStyleHorizontal).apply {
                 max = 100; progress = ((categorySpent * 100 / budget.amountLimitMinor.coerceAtLeast(1)).toInt()).coerceIn(0, 100)
@@ -611,10 +612,17 @@ class FinanceFeatureFragment : Fragment() {
         parent.addView(this, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10) })
     }
 
-    private fun rowText(left: String, right: String, positive: Boolean): LinearLayout = LinearLayout(requireContext()).apply {
+    private fun rowText(left: String, right: String, positive: Boolean, editable: Boolean = false): LinearLayout = LinearLayout(requireContext()).apply {
         orientation = LinearLayout.HORIZONTAL; gravity = android.view.Gravity.CENTER_VERTICAL
         addView(text(left, 14, R.color.text_primary, true), LinearLayout.LayoutParams(0, -2, 1f))
         addView(text(right, 14, if (positive) R.color.forest_700 else R.color.text_primary, true).apply { gravity = android.view.Gravity.END })
+        if (editable) {
+            addView(ImageView(requireContext()).apply {
+                setImageResource(R.drawable.ic_edit)
+                contentDescription = "Edit"
+                imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.forest_700)
+            }, LinearLayout.LayoutParams(dp(16), dp(16)).apply { marginStart = dp(8) })
+        }
     }
 
     private fun text(value: String, sp: Int, color: Int, bold: Boolean = false) = TextView(requireContext()).apply {
