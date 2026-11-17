@@ -15,6 +15,7 @@ import com.example.pesatrackexpensetrackapp.R
 import com.example.pesatrackexpensetrackapp.databinding.FragmentDashboardBinding
 import com.example.pesatrackexpensetrackapp.ui.main.MainViewModel
 import com.example.pesatrackexpensetrackapp.ui.main.FinanceViewModel
+import com.example.pesatrackexpensetrackapp.utils.renderProfileAvatar
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -43,6 +44,9 @@ class DashboardFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         mainViewModel.currentUserState.observe(viewLifecycleOwner) { updateGreeting() }
         updateGreeting()
+        binding.dashboardProfileAvatar.setOnClickListener {
+            findNavController().navigate(R.id.profileFragment)
+        }
 
         binding.addTransactionButton.setOnClickListener {
             findNavController().navigate(R.id.transactionFormFragment)
@@ -135,8 +139,22 @@ class DashboardFragment : Fragment() {
         val user = mainViewModel.currentUser
         val userName = user?.displayName?.takeIf(String::isNotBlank)
             ?: user?.email?.substringBefore('@')
-            ?: getString(R.string.brand_name)
+            ?: "there"
         binding.dashboardGreeting.text = getString(R.string.dashboard_hello, userName)
+        renderProfileAvatar(
+            requireContext(),
+            user?.uid,
+            user?.displayName,
+            user?.email,
+            binding.dashboardProfileAvatar,
+            binding.dashboardProfileInitial,
+            binding.dashboardProfileImage,
+        )
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (_binding != null) updateGreeting()
     }
 
     private fun money(minor: Long): String {

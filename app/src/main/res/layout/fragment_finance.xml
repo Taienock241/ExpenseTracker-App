@@ -21,14 +21,6 @@
             android:paddingEnd="18dp"
             android:paddingBottom="20dp">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/brand_name"
-                android:textColor="@color/forest_700"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-
             <Button
                 android:id="@+id/financeBackButton"
                 android:layout_width="wrap_content"
