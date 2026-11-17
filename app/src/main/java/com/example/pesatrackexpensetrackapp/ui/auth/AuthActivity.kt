@@ -7,6 +7,7 @@ import androidx.fragment.app.FragmentActivity
 import com.example.pesatrackexpensetrackapp.PesaTrackApp
 import com.example.pesatrackexpensetrackapp.databinding.ActivityAuthBinding
 import com.example.pesatrackexpensetrackapp.MainActivity
+import com.example.pesatrackexpensetrackapp.utils.applySystemBarInsets
 
 class AuthActivity : FragmentActivity() {
     private lateinit var binding: ActivityAuthBinding
@@ -18,6 +19,7 @@ class AuthActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityAuthBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        binding.root.applySystemBarInsets()
 
         viewModel.authenticated.observe(this) { event ->
             event.getContentIfNotHandled()?.let { openMainApp() }

@@ -17,6 +17,7 @@ import com.example.pesatrackexpensetrackapp.databinding.ActivityMainBinding
 import com.example.pesatrackexpensetrackapp.ui.auth.AuthActivity
 import com.example.pesatrackexpensetrackapp.ui.main.MainViewModel
 import com.example.pesatrackexpensetrackapp.utils.SessionManager
+import com.example.pesatrackexpensetrackapp.utils.applySystemBarInsets
 
 class MainActivity : FragmentActivity() {
     private lateinit var binding: ActivityMainBinding
@@ -61,6 +62,7 @@ class MainActivity : FragmentActivity() {
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        binding.root.applySystemBarInsets()
         val navHost = supportFragmentManager.findFragmentById(R.id.mainNavHost) as NavHostFragment
         navController = navHost.navController
 

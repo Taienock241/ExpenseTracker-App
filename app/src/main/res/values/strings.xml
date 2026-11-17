@@ -1,6 +1,5 @@
 <resources>
     <string name="app_name">Expense Tracker</string>
-    <string name="brand_name">PesaTrack</string>
     <string name="welcome_title">Take control of your money</string>
     <string name="welcome_body">Track everyday spending, plan your budget, and see where your money goes.</string>
     <string name="welcome_highlight">Your money, clearly in view</string>
@@ -27,7 +26,7 @@
     <string name="action_sign_up">Create account</string>
     <string name="action_send_reset">Send reset link</string>
     <string name="action_forgot_password">Forgot password?</string>
-    <string name="prompt_no_account">New to PesaTrack?</string>
+    <string name="prompt_no_account">New here?</string>
     <string name="prompt_has_account">Already have an account?</string>
     <string name="action_register">Register</string>
     <string name="action_login">Log in</string>
@@ -41,7 +40,7 @@
     <string name="error_network">Couldn’t connect. Check your internet connection and try again.</string>
     <string name="error_generic">Something went wrong. Please try again.</string>
     <string name="error_profile_setup">Your account was created, but setup could not finish. Sign in again when you have a connection.</string>
-    <string name="error_default_setup">We couldn’t finish setting up your PesaTrack data. Check your connection and Firestore rules, then sign in again.</string>
+    <string name="error_default_setup">We couldn’t finish setting up your account. Check your connection and Firestore rules, then sign in again.</string>
     <string name="message_reset_sent">If an account exists for this email, password reset instructions will be sent.</string>
     <string name="dashboard_hello">Hello, %1$s</string>
     <string name="dashboard_subtitle">Here’s your money overview.</string>

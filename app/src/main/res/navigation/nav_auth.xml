@@ -7,7 +7,7 @@
     <fragment
         android:id="@+id/welcomeFragment"
         android:name="com.example.pesatrackexpensetrackapp.ui.auth.WelcomeFragment"
-        android:label="@string/brand_name">
+        android:label="@string/welcome_title">
         <action
             android:id="@+id/action_welcome_to_login"
             app:destination="@id/loginFragment" />

@@ -2,6 +2,8 @@ package com.example.pesatrackexpensetrackapp.ui.main
 
 import android.app.DatePickerDialog
 import android.app.AlertDialog
+import android.os.Handler
+import android.os.Looper
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -11,6 +13,7 @@ import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
@@ -19,6 +22,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.view.setPadding
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
@@ -31,6 +35,9 @@ import com.example.pesatrackexpensetrackapp.data.model.MonthlyBudget
 import com.example.pesatrackexpensetrackapp.data.model.RecurringItem
 import com.example.pesatrackexpensetrackapp.data.model.SavingsGoal
 import com.example.pesatrackexpensetrackapp.databinding.FragmentFinanceBinding
+import com.example.pesatrackexpensetrackapp.utils.ProfileImageStore
+import com.example.pesatrackexpensetrackapp.utils.profileInitial
+import com.example.pesatrackexpensetrackapp.utils.renderProfileAvatar
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -52,6 +59,17 @@ class FinanceFeatureFragment : Fragment() {
     private var transactionSearchText = ""
     private var transactionTypeFilter = 0
     private var activeDialog: AlertDialog? = null
+    private val chooseProfilePhoto = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let { selected ->
+            runCatching {
+                requireContext().contentResolver.takePersistableUriPermission(
+                    selected,
+                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                )
+            }
+            saveProfilePhoto(selected)
+        }
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentFinanceBinding.inflate(inflater, container, false)
@@ -103,7 +121,7 @@ class FinanceFeatureFragment : Fragment() {
         if (screenId == R.id.transactionFormFragment) {
             binding.financeAddButton.visibility = View.GONE
             binding.financeSummaryCard.visibility = View.GONE
-            binding.financeRowsContainer.addView(text("Add an income or expense to your PesaTrack account.", 14, R.color.text_muted))
+            binding.financeRowsContainer.addView(text("Add an income or expense to your account.", 14, R.color.text_muted))
             binding.financeRowsContainer.post { showTransactionDialog() }
         }
         render()
@@ -349,10 +367,11 @@ class FinanceFeatureFragment : Fragment() {
 
     private fun renderProfile(rows: LinearLayout) {
         val user = main.currentUser
-        binding.financeSummaryLabel.text = "PESATRACK ACCOUNT"
-        binding.financeSummaryAmount.text = user?.displayName?.ifBlank { user.email.substringBefore('@') } ?: "PesaTrack member"
+        binding.financeSummaryLabel.text = "YOUR ACCOUNT"
+        binding.financeSummaryAmount.text = user?.displayName?.ifBlank { user.email.substringBefore('@') } ?: "Account holder"
         binding.financeSummaryNote.text = user?.email.orEmpty()
         binding.financeAddButton.visibility = View.GONE
+        renderProfilePhoto(rows, user?.uid.orEmpty())
         section(rows, "Preferences")
         card(rows).apply {
             addView(rowText("Edit profile", "Update name", false).apply {
@@ -372,6 +391,76 @@ class FinanceFeatureFragment : Fragment() {
             setOnClickListener { confirm("Sign out?", "You can sign back in at any time.") { main.signOut() } }
             rows.addView(this, LinearLayout.LayoutParams(-1, dp(50)).apply { topMargin = dp(10) })
         }
+    }
+
+    private fun renderProfilePhoto(rows: LinearLayout, userId: String) {
+        val user = main.currentUser
+        val hasPhoto = userId.isNotBlank() && ProfileImageStore.fileFor(requireContext(), userId).isFile
+
+        val photoCard = card(rows).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+        }
+        val avatar = FrameLayout(requireContext()).apply {
+            setBackgroundResource(R.drawable.bg_profile_avatar)
+            clipToOutline = true
+            contentDescription = if (hasPhoto) "Change profile photo" else "Add profile photo"
+            isClickable = true
+            isFocusable = true
+            setOnClickListener { chooseProfilePhoto.launch(arrayOf("image/*")) }
+        }
+        val initialView = text(profileInitial(user?.displayName, user?.email), 25, R.color.white, true).apply {
+            gravity = android.view.Gravity.CENTER
+        }
+        avatar.addView(initialView, FrameLayout.LayoutParams(-1, -1))
+
+        val photoView = ImageView(requireContext()).apply {
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            contentDescription = "Profile photo"
+            visibility = View.GONE
+        }
+        avatar.addView(photoView, FrameLayout.LayoutParams(-1, -1))
+        renderProfileAvatar(
+            requireContext(), userId, user?.displayName, user?.email, avatar, initialView, photoView,
+        )
+
+        photoCard.addView(avatar, LinearLayout.LayoutParams(dp(68), dp(68)))
+        val photoActions = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(12), 0, 0, 0)
+        }
+        photoActions.addView(text("Profile photo", 14, R.color.text_primary, true))
+        photoActions.addView(text(
+            if (!hasPhoto) "Your name initial appears until you add a photo."
+            else "Your photo is saved on this device.",
+            12,
+            R.color.text_muted,
+        ).apply { setPadding(0, dp(3), 0, dp(4)) })
+        photoActions.addView(Button(requireContext()).apply {
+            text = if (!hasPhoto) "Add photo" else "Change photo"
+            isAllCaps = false
+            setTextColor(ContextCompat.getColor(requireContext(), R.color.forest_700))
+            setBackgroundResource(R.drawable.bg_secondary_button)
+            setOnClickListener { chooseProfilePhoto.launch(arrayOf("image/*")) }
+        }, LinearLayout.LayoutParams(-2, dp(40)))
+        photoCard.addView(photoActions, LinearLayout.LayoutParams(0, -2, 1f))
+    }
+
+    private fun saveProfilePhoto(uri: android.net.Uri) {
+        val userId = main.currentUser?.uid ?: return
+        val appContext = requireContext().applicationContext
+        Thread({
+            val result = ProfileImageStore.save(appContext, userId, uri)
+            Handler(Looper.getMainLooper()).post {
+                if (!isAdded) return@post
+                if (result.saved) {
+                    if (_binding != null && screenId == R.id.profileFragment) render()
+                    toast("Profile photo updated")
+                } else {
+                    toast(result.reason ?: "Could not save this photo. Please choose another one.")
+                }
+            }
+        }, "profile-photo-save").start()
     }
 
     private fun handleAdd() {
