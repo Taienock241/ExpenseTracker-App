@@ -23,6 +23,7 @@ import java.util.Date
 import java.util.Locale
 
 class DashboardFragment : Fragment() {
+    private var hideSensitiveAmounts = false
     private var _binding: FragmentDashboardBinding? = null
     private val binding get() = _binding!!
     private val mainViewModel: MainViewModel by activityViewModels {
@@ -42,6 +43,15 @@ class DashboardFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        val amountPreferences = requireContext().getSharedPreferences("dashboard_preferences", 0)
+        hideSensitiveAmounts = amountPreferences.getBoolean("hide_sensitive_amounts", false)
+        updateBalanceVisibilityControl()
+        binding.dashboardBalanceVisibility.setOnClickListener {
+            hideSensitiveAmounts = !hideSensitiveAmounts
+            amountPreferences.edit().putBoolean("hide_sensitive_amounts", hideSensitiveAmounts).apply()
+            updateBalanceVisibilityControl()
+            renderFinance()
+        }
         mainViewModel.currentUserState.observe(viewLifecycleOwner) { updateGreeting() }
         updateGreeting()
         binding.dashboardProfileAvatar.setOnClickListener {
@@ -54,6 +64,21 @@ class DashboardFragment : Fragment() {
         binding.openBudgetsButton.setOnClickListener {
             findNavController().navigate(R.id.budgetsFragment)
         }
+        binding.dashboardBudgetsCard.setOnClickListener {
+            findNavController().navigate(R.id.budgetsFragment)
+        }
+        binding.dashboardAccountsCard.setOnClickListener {
+            findNavController().navigate(R.id.accountsFragment)
+        }
+        binding.dashboardReportsCard.setOnClickListener {
+            findNavController().navigate(R.id.reportsFragment)
+        }
+        binding.dashboardTransactionsCard.setOnClickListener {
+            findNavController().navigate(R.id.transactionsFragment)
+        }
+        binding.viewAllTransactions.setOnClickListener {
+            findNavController().navigate(R.id.transactionsFragment)
+        }
         financeViewModel.transactions.observe(viewLifecycleOwner) { renderFinance() }
         financeViewModel.accounts.observe(viewLifecycleOwner) { renderFinance() }
         financeViewModel.budgets.observe(viewLifecycleOwner) { renderFinance() }
@@ -62,7 +87,7 @@ class DashboardFragment : Fragment() {
 
     private fun renderFinance() {
         val transactions = financeViewModel.transactions.value.orEmpty()
-        val accounts = financeViewModel.accounts.value.orEmpty()
+        val accounts = financeViewModel.accounts.value.orEmpty().filterNot { it.archived }
         val month = Calendar.getInstance()
         val thisMonth = transactions.filter { transaction ->
             Calendar.getInstance().apply { timeInMillis = transaction.occurredAtMillis }.let {
@@ -71,15 +96,19 @@ class DashboardFragment : Fragment() {
         }
         val income = thisMonth.filter { it.type == "INCOME" }.sumOf { it.amountMinor }
         val expenses = thisMonth.filter { it.type == "EXPENSE" }.sumOf { it.amountMinor }
+        val budgets = financeViewModel.budgets.value.orEmpty().filter { it.month == financeViewModel.currentMonth() }
+        binding.dashboardBudgetCount.text = budgets.size.toString()
+        binding.dashboardAccountCount.text = accounts.size.toString()
+        binding.dashboardTransactionCount.text = thisMonth.size.toString()
+        binding.dashboardReportValue.text = displayMoney(income - expenses)
         val balance = accounts.sumOf { account ->
             account.openingBalanceMinor + transactions.filter { it.accountId == account.id }
                 .sumOf { if (it.type == "INCOME") it.amountMinor else -it.amountMinor }
         }
-        binding.dashboardBalance.text = money(balance)
-        binding.dashboardIncome.text = money(income)
-        binding.dashboardExpenses.text = money(expenses)
+        binding.dashboardBalance.text = displayMoney(balance)
+        binding.dashboardIncome.text = displayMoney(income)
+        binding.dashboardExpenses.text = displayMoney(expenses)
 
-        val budgets = financeViewModel.budgets.value.orEmpty().filter { it.month == financeViewModel.currentMonth() }
         val budgetLimit = budgets.sumOf { it.amountLimitMinor }
         // Compare only spending in budgeted categories against the category limits.
         val budgetedCategoryIds = budgets.map { it.categoryId }.toSet()
@@ -89,7 +118,8 @@ class DashboardFragment : Fragment() {
         binding.openBudgetsButton.text = if (budgetLimit == 0L) {
             getString(R.string.dashboard_budget_hint)
         } else {
-            "Monthly budget  ·  ${money(budgetedSpending)} of ${money(budgetLimit)} used"
+            if (hideSensitiveAmounts) "Monthly budget  ·  Amounts hidden"
+            else "Monthly budget  ·  ${money(budgetedSpending)} of ${money(budgetLimit)} used"
         }
 
         val container = binding.dashboardRecentContainer
@@ -118,10 +148,10 @@ class DashboardFragment : Fragment() {
                     setTextColor(ContextCompat.getColor(requireContext(), R.color.text_primary))
                 }, LinearLayout.LayoutParams(0, -2, 1f))
                 headline.addView(TextView(requireContext()).apply {
-                    text = (if (transaction.type == "INCOME") "+ " else "− ") + money(transaction.amountMinor)
+                    text = (if (transaction.type == "INCOME") "+ " else "− ") + displayMoney(transaction.amountMinor)
                     textSize = 13f
                     setTypeface(typeface, android.graphics.Typeface.BOLD)
-                    setTextColor(ContextCompat.getColor(requireContext(), if (transaction.type == "INCOME") R.color.forest_700 else R.color.text_primary))
+                    setTextColor(ContextCompat.getColor(requireContext(), if (transaction.type == "INCOME") R.color.green_500 else R.color.text_primary))
                 })
                 row.addView(headline)
                 row.addView(TextView(requireContext()).apply {
@@ -140,7 +170,14 @@ class DashboardFragment : Fragment() {
         val userName = user?.displayName?.takeIf(String::isNotBlank)
             ?: user?.email?.substringBefore('@')
             ?: "there"
-        binding.dashboardGreeting.text = getString(R.string.dashboard_hello, userName)
+        val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+        val timeGreeting = when {
+            hour in 5..11 -> "morning"
+            hour in 12..16 -> "afternoon"
+            hour in 17..21 -> "evening"
+            else -> "night"
+        }
+        binding.dashboardGreeting.text = getString(R.string.dashboard_hello, timeGreeting, userName)
         renderProfileAvatar(
             requireContext(),
             user?.uid,
@@ -151,6 +188,17 @@ class DashboardFragment : Fragment() {
             binding.dashboardProfileImage,
         )
     }
+
+    private fun updateBalanceVisibilityControl() {
+        binding.dashboardBalanceVisibility.setImageResource(
+            if (hideSensitiveAmounts) R.drawable.ic_visibility_off else R.drawable.ic_visibility,
+        )
+        binding.dashboardBalanceVisibility.contentDescription =
+            if (hideSensitiveAmounts) "Show balances" else "Hide balances"
+    }
+
+    private fun displayMoney(minor: Long): String =
+        if (hideSensitiveAmounts) "KSh  ••••••" else money(minor)
 
     override fun onResume() {
         super.onResume()

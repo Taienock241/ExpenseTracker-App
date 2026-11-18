@@ -11,6 +11,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
+import android.widget.AutoCompleteTextView
 import android.widget.Button
 import android.widget.EditText
 import android.widget.FrameLayout
@@ -36,6 +37,7 @@ import com.example.pesatrackexpensetrackapp.data.model.RecurringItem
 import com.example.pesatrackexpensetrackapp.data.model.SavingsGoal
 import com.example.pesatrackexpensetrackapp.databinding.FragmentFinanceBinding
 import com.example.pesatrackexpensetrackapp.utils.ProfileImageStore
+import com.example.pesatrackexpensetrackapp.utils.ProfilePhotoCropView
 import com.example.pesatrackexpensetrackapp.utils.profileInitial
 import com.example.pesatrackexpensetrackapp.utils.renderProfileAvatar
 import java.text.NumberFormat
@@ -206,7 +208,7 @@ class FinanceFeatureFragment : Fragment() {
         binding.financeAddButton.visibility = View.VISIBLE
         binding.financeAddButton.text = "＋  Set a budget"
         section(rows, "Category budgets")
-        if (budgets.isNotEmpty()) rows.addView(text("Tap a budget to change its limit.", 12, R.color.text_muted).apply { setPadding(0, 0, 0, dp(8)) })
+        if (budgets.isNotEmpty()) rows.addView(text("Tap a budget to edit its limit or delete it.", 12, R.color.text_muted).apply { setPadding(0, 0, 0, dp(8)) })
         if (budgets.isEmpty()) empty(rows, "No budgets yet", "Choose a category and set a monthly spending limit.")
         budgets.forEach { budget ->
             val category = finance.categories.value.orEmpty().firstOrNull { it.id == budget.categoryId }
@@ -287,21 +289,58 @@ class FinanceFeatureFragment : Fragment() {
     private fun renderAccounts(rows: LinearLayout) {
         binding.financeAddButton.visibility = View.VISIBLE
         binding.financeAddButton.text = "＋  Add account"
-        val accounts = activeAccounts
+        val allAccounts = finance.accounts.value.orEmpty()
+        val accounts = allAccounts.filterNot { it.archived }
+        val archivedAccounts = allAccounts.filter { it.archived }
         val tx = finance.transactions.value.orEmpty()
         val total = accounts.sumOf { account -> account.openingBalanceMinor + tx.filter { it.accountId == account.id }.sumOf { if (it.type == "INCOME") it.amountMinor else -it.amountMinor } }
         binding.financeSummaryLabel.text = "TOTAL ACCOUNT BALANCE"
         binding.financeSummaryAmount.text = money(total)
-        binding.financeSummaryNote.text = "${accounts.size} active ${if (accounts.size == 1) "account" else "accounts"}"
+        binding.financeSummaryNote.text = "${accounts.size} active · ${archivedAccounts.size} archived"
         section(rows, "Your accounts")
         if (accounts.isEmpty()) empty(rows, "No accounts found", "Your Cash account should appear after setup finishes.")
         accounts.forEach { account ->
             val balance = account.openingBalanceMinor + tx.filter { it.accountId == account.id }.sumOf { if (it.type == "INCOME") it.amountMinor else -it.amountMinor }
             card(rows).apply {
                 addView(rowText("${account.name}  ·  ${account.type.lowercase().replaceFirstChar { it.uppercase() }}", money(balance), false))
-                setOnClickListener { confirm("Archive ${account.name}?", "Archived accounts remain in your history but cannot be selected for new transactions.") { finance.archiveAccount(account) } }
+                addAccountActions(this, account, archived = false)
             }
         }
+        section(rows, "Archived accounts")
+        if (archivedAccounts.isEmpty()) {
+            rows.addView(text("Archived wallets stay here. Restore one to use it for new transactions.", 12, R.color.text_muted))
+        }
+        archivedAccounts.forEach { account ->
+            val balance = account.openingBalanceMinor + tx.filter { it.accountId == account.id }.sumOf { if (it.type == "INCOME") it.amountMinor else -it.amountMinor }
+            card(rows).apply {
+                addView(rowText("${account.name}  ·  Archived", money(balance), false))
+                addView(text("Past transactions remain in your history.", 11, R.color.text_muted).apply { setPadding(0, dp(4), 0, dp(8)) })
+                addAccountActions(this, account, archived = true)
+            }
+        }
+    }
+
+    private fun addAccountActions(parent: LinearLayout, account: FinanceAccount, archived: Boolean) {
+        val actions = LinearLayout(requireContext()).apply { orientation = LinearLayout.HORIZONTAL }
+        actions.addView(accountActionButton("Edit") { showAccountDialog(account) },
+            LinearLayout.LayoutParams(0, dp(42), 1f))
+        val actionText = if (archived) "Restore" else "Archive"
+        val action: () -> Unit = if (archived) {
+            { confirm("Restore ${account.name}?", "This wallet will be available for new transactions again.") { finance.restoreAccount(account) } }
+        } else {
+            { confirm("Archive ${account.name}?", "It will stay in your history and can be restored later.") { finance.archiveAccount(account) } }
+        }
+        actions.addView(accountActionButton(actionText, action),
+            LinearLayout.LayoutParams(0, dp(42), 1f).apply { marginStart = dp(8) })
+        parent.addView(actions, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(10) })
+    }
+
+    private fun accountActionButton(label: String, onClick: () -> Unit) = Button(requireContext()).apply {
+        text = label
+        isAllCaps = false
+        setTextColor(ContextCompat.getColor(requireContext(), R.color.forest_700))
+        setBackgroundResource(R.drawable.bg_secondary_button)
+        setOnClickListener { onClick() }
     }
 
     private fun renderGoals(rows: LinearLayout) {
@@ -450,14 +489,72 @@ class FinanceFeatureFragment : Fragment() {
         val userId = main.currentUser?.uid ?: return
         val appContext = requireContext().applicationContext
         Thread({
-            val result = ProfileImageStore.save(appContext, userId, uri)
+            val bitmap = ProfileImageStore.loadForCrop(appContext, uri)
+            Handler(Looper.getMainLooper()).post {
+                if (!isAdded) {
+                    bitmap?.recycle()
+                    return@post
+                }
+                if (bitmap == null) toast("Could not open that image. Please choose another photo.")
+                else showProfilePhotoCrop(userId, bitmap)
+            }
+        }, "profile-photo-load").start()
+    }
+
+    private fun showProfilePhotoCrop(userId: String, bitmap: android.graphics.Bitmap) {
+        if (!isAdded) {
+            bitmap.recycle()
+            return
+        }
+        val cropView = ProfilePhotoCropView(requireContext(), bitmap)
+        val content = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = android.view.Gravity.CENTER_HORIZONTAL
+            setPadding(dp(20), dp(8), dp(20), dp(4))
+            addView(
+                text("Drag to position your photo and pinch to zoom.", 13, R.color.text_muted)
+                    .apply { setPadding(0, 0, 0, dp(12)) },
+            )
+            val cropSize = (resources.displayMetrics.widthPixels / resources.displayMetrics.density - 80)
+                .toInt().coerceIn(190, 280)
+            addView(cropView, LinearLayout.LayoutParams(dp(cropSize), dp(cropSize)))
+        }
+        val dialog = AlertDialog.Builder(requireContext())
+            .setTitle("Adjust profile photo")
+            .setView(content)
+            .setNegativeButton("Cancel", null)
+            .setPositiveButton("Use photo", null)
+            .create()
+        activeDialog = dialog
+        dialog.setOnDismissListener {
+            if (!bitmap.isRecycled) bitmap.recycle()
+        }
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val crop = runCatching { cropView.croppedBitmap() }.getOrNull()
+                if (crop == null) {
+                    toast("Could not prepare that photo. Please try another one.")
+                    return@setOnClickListener
+                }
+                dialog.dismiss()
+                saveCroppedProfilePhoto(userId, crop)
+            }
+        }
+        dialog.show()
+    }
+
+    private fun saveCroppedProfilePhoto(userId: String, crop: android.graphics.Bitmap) {
+        val appContext = requireContext().applicationContext
+        Thread({
+            val result = ProfileImageStore.save(appContext, userId, crop)
+            crop.recycle()
             Handler(Looper.getMainLooper()).post {
                 if (!isAdded) return@post
                 if (result.saved) {
                     if (_binding != null && screenId == R.id.profileFragment) render()
                     toast("Profile photo updated")
                 } else {
-                    toast(result.reason ?: "Could not save this photo. Please choose another one.")
+                    toast(result.reason ?: "Could not save this photo. Please try again.")
                 }
             }
         }, "profile-photo-save").start()
@@ -478,22 +575,29 @@ class FinanceFeatureFragment : Fragment() {
         val title = input("Title, for example groceries")
         val amount = input("Amount in KSh").apply { inputType = 8194; if (existing != null) setText(decimal(existing.amountMinor)) }
         val type = spinner(listOf("Expense", "Income"), if (existing?.type == "INCOME") 1 else 0)
-        val categorySpinner = Spinner(requireContext())
+        val existingCategory = existing?.let { transaction ->
+            activeCategories.firstOrNull { it.id == transaction.categoryId }
+        }
+        val categoryInput = categoryInput("Category, e.g. Salary or Food").apply {
+            setText(existingCategory?.name.orEmpty(), false)
+        }
         val accountSpinner = Spinner(requireContext())
         val dateButton = Button(requireContext()).apply { isAllCaps = false }
         var occurredAt = existing?.occurredAtMillis ?: System.currentTimeMillis()
-        fun updateCategoryChoices() {
+        fun updateCategorySuggestions() {
             val typeCode = if (type.selectedItemPosition == 1) "INCOME" else "EXPENSE"
-            val choices = activeCategories.filter { it.type == typeCode }
-            categorySpinner.adapter = adapter(choices.map { it.name })
-            val selected = choices.indexOfFirst { it.id == existing?.categoryId }.takeIf { it >= 0 } ?: 0
-            if (choices.isNotEmpty()) categorySpinner.setSelection(selected)
+            val suggestions = activeCategories.filter { it.type == typeCode }.map { it.name }.distinct()
+            categoryInput.setAdapter(adapter(suggestions))
         }
-        type.onItemSelectedListener = simpleSelection { updateCategoryChoices() }
-        updateCategoryChoices()
+        type.onItemSelectedListener = simpleSelection { updateCategorySuggestions() }
+        updateCategorySuggestions()
         val accounts = activeAccounts
-        accountSpinner.adapter = adapter(accounts.map { it.name })
-        accountSpinner.setSelection(accounts.indexOfFirst { it.id == existing?.accountId }.coerceAtLeast(0))
+        accountSpinner.adapter = adapter(
+            if (accounts.isEmpty()) listOf("No accounts available")
+            else listOf("Choose an account") + accounts.map { it.name },
+        )
+        val selectedAccountIndex = accounts.indexOfFirst { it.id == existing?.accountId }
+        accountSpinner.setSelection(if (selectedAccountIndex >= 0) selectedAccountIndex + 1 else 0)
         fun showDate() {
             val cal = Calendar.getInstance().apply { timeInMillis = occurredAt }
             DatePickerDialog(requireContext(), { _, year, month, day ->
@@ -503,7 +607,18 @@ class FinanceFeatureFragment : Fragment() {
         }
         dateButton.setOnClickListener { showDate() }; dateButton.text = "Date: ${date(occurredAt)}"
         val notes = input("Notes (optional)").apply { setSingleLine(false); minLines = 2; maxLines = 3; if (existing != null) setText(existing.notes) }
-        val content = form(title, amount, type, categorySpinner, accountSpinner, dateButton, notes)
+        val content = form(
+            title,
+            amount,
+            text("Transaction type", 12, R.color.text_muted),
+            type,
+            text("Category", 12, R.color.text_muted),
+            categoryInput,
+            text("Account", 12, R.color.text_muted),
+            accountSpinner,
+            dateButton,
+            notes,
+        )
         AlertDialog.Builder(requireContext()).setTitle(if (existing == null) "Add transaction" else "Edit transaction")
             .setView(content).setNegativeButton("Cancel") { _, _ -> leaveFormScreen() }.setPositiveButton("Save", null)
             .apply {
@@ -518,22 +633,26 @@ class FinanceFeatureFragment : Fragment() {
                     dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                         val amountMinor = parseAmount(amount.text.toString())
                         val selectedType = if (type.selectedItemPosition == 1) "INCOME" else "EXPENSE"
-                        val selectedCategories = activeCategories.filter { it.type == selectedType }
-                        val selectedAccount = accounts.getOrNull(accountSpinner.selectedItemPosition)
+                        val categoryName = categoryInput.text.toString().trim()
+                        val selectedAccount = accounts.getOrNull(accountSpinner.selectedItemPosition - 1)
                         if (title.text.toString().trim().length > 80) { title.error = "Use 80 characters or fewer"; return@setOnClickListener }
                         if (notes.text.toString().trim().length > 500) { notes.error = "Use 500 characters or fewer"; return@setOnClickListener }
-                        if (title.text.toString().isBlank() || amountMinor == null || amountMinor <= 0L || selectedCategories.isEmpty() || selectedAccount == null) {
+                        if (categoryName.length > 30) { categoryInput.error = "Use 30 characters or fewer"; return@setOnClickListener }
+                        if (title.text.toString().isBlank() || amountMinor == null || amountMinor <= 0L || categoryName.isBlank() || selectedAccount == null) {
                             amount.error = if (amountMinor == null || amountMinor <= 0) "Enter an amount greater than zero" else null
                             if (title.text.isBlank()) title.error = "Enter a title"
-                            if (selectedCategories.isEmpty()) toast("Add a category for this transaction first.")
-                            if (selectedAccount == null) toast("No active account is available.")
+                            if (categoryName.isBlank()) categoryInput.error = "Enter a category"
+                            if (selectedAccount == null) toast(if (accounts.isEmpty()) "No active account is available." else "Choose an account for this transaction.")
                             return@setOnClickListener
                         }
-                        finance.saveTransaction(FinanceTransaction(
-                            id = existing?.id.orEmpty(), title = title.text.toString().trim(), type = selectedType,
-                            amountMinor = amountMinor, categoryId = selectedCategories[categorySpinner.selectedItemPosition].id,
-                            accountId = selectedAccount.id, occurredAtMillis = occurredAt, notes = notes.text.toString(),
-                        ))
+                        finance.saveTransactionWithCategory(
+                            FinanceTransaction(
+                                id = existing?.id.orEmpty(), title = title.text.toString().trim(), type = selectedType,
+                                amountMinor = amountMinor, accountId = selectedAccount.id,
+                                occurredAtMillis = occurredAt, notes = notes.text.toString(),
+                            ),
+                            categoryName,
+                        )
                     }
                 }
                 dialog.show()
@@ -545,22 +664,64 @@ class FinanceFeatureFragment : Fragment() {
     }
 
     private fun showBudgetDialog(existing: MonthlyBudget? = null) {
-        val categories = activeCategories.filter { it.type == "EXPENSE" }
-        if (categories.isEmpty()) { toast("Add an expense category first."); return }
-        val category = spinner(categories.map { it.name })
+        val existingCategoryName = existing?.let { budget ->
+            finance.categories.value.orEmpty().firstOrNull { it.id == budget.categoryId }?.name
+        }
+        val categoryInput = categoryInput("Expense category, e.g. Food").apply {
+            setText(existingCategoryName.orEmpty(), false)
+            if (existing != null) isEnabled = false
+            setAdapter(adapter(activeCategories.filter { it.type == "EXPENSE" }.map { it.name }.distinct()))
+        }
         val amount = input("Monthly limit in KSh").apply { inputType = 8194 }
         if (existing != null) {
             // Budgets are keyed by month + category, so when editing the category stays fixed.
-            val index = categories.indexOfFirst { it.id == existing.categoryId }
-            if (index >= 0) category.setSelection(index)
-            category.isEnabled = false
             amount.setText(decimal(existing.amountLimitMinor))
         }
-        askForm(if (existing == null) "Set monthly budget" else "Edit monthly budget", form(category, amount)) {
-            val limit = parseAmount(amount.text.toString())
-            if (limit == null || limit <= 0L) { amount.error = "Enter a positive limit"; false }
-            else { finance.saveBudget(MonthlyBudget(month = finance.currentMonth(), categoryId = categories[category.selectedItemPosition].id, amountLimitMinor = limit)); true }
+        val dialog = AlertDialog.Builder(requireContext())
+            .setTitle(if (existing == null) "Set monthly budget" else "Edit monthly budget")
+            .setView(
+                form(
+                    text("Expense category", 12, R.color.text_muted),
+                    categoryInput,
+                    amount,
+                ),
+            )
+            .setNegativeButton("Cancel", null)
+            .setPositiveButton(if (existing == null) "Save" else "Save changes", null)
+            .apply { if (existing != null) setNeutralButton("Delete", null) }
+            .create()
+        activeDialog = dialog
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val limit = parseAmount(amount.text.toString())
+                if (limit == null || limit <= 0L) {
+                    amount.error = "Enter a positive limit"
+                } else if (existing == null && categoryInput.text.toString().isBlank()) {
+                    categoryInput.error = "Enter a category"
+                } else if (categoryInput.text.toString().trim().length > 30) {
+                    categoryInput.error = "Use 30 characters or fewer"
+                } else {
+                    if (existing != null) {
+                        finance.saveBudget(existing.copy(amountLimitMinor = limit))
+                    } else {
+                        finance.saveBudgetWithCategory(
+                            MonthlyBudget(month = finance.currentMonth(), amountLimitMinor = limit),
+                            categoryInput.text.toString().trim(),
+                        )
+                    }
+                }
+            }
+            if (existing != null) {
+                dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+                    dialog.dismiss()
+                    confirm(
+                        "Delete budget?",
+                        "This removes the ${activeCategories.firstOrNull { it.id == existing.categoryId }?.name ?: "category"} budget for ${existing.month}.",
+                    ) { finance.deleteBudget(existing) }
+                }
+            }
         }
+        dialog.show()
     }
 
     private fun showCategoryDialog() {
@@ -572,14 +733,29 @@ class FinanceFeatureFragment : Fragment() {
         }
     }
 
-    private fun showAccountDialog() {
-        val name = input("Account name")
-        val type = spinner(listOf("Cash", "Bank", "M-Pesa", "Other"))
-        val opening = input("Opening balance in KSh").apply { inputType = 8194; setText("0") }
-        askForm("Add account", form(name, type, opening)) {
+    private fun showAccountDialog(existing: FinanceAccount? = null) {
+        val name = input("Account name").apply { existing?.let { setText(it.name) } }
+        val accountTypes = listOf("CASH", "BANK", "MPESA", "OTHER")
+        val type = spinner(listOf("Cash", "Bank", "M-Pesa", "Other"), accountTypes.indexOf(existing?.type).coerceAtLeast(0))
+        val opening = input("Opening balance in KSh").apply {
+            inputType = 8194
+            setText(existing?.let { decimal(it.openingBalanceMinor) } ?: "0")
+        }
+        askForm(if (existing == null) "Add account" else "Edit account", form(name, type, opening)) {
             val balance = parseAmount(opening.text.toString())
             if (name.text.isBlank() || name.text.toString().trim().length > 30 || balance == null || balance < 0L) { name.error = if (name.text.isBlank() || name.text.toString().trim().length > 30) "Enter a name up to 30 characters" else null; opening.error = if (balance == null || balance < 0) "Enter a valid balance" else null; false }
-            else { finance.saveAccount(FinanceAccount(name = name.text.toString(), type = listOf("CASH", "BANK", "MPESA", "OTHER")[type.selectedItemPosition], openingBalanceMinor = balance)); true }
+            else {
+                finance.saveAccount(
+                    FinanceAccount(
+                        id = existing?.id.orEmpty(),
+                        name = name.text.toString(),
+                        type = accountTypes[type.selectedItemPosition],
+                        openingBalanceMinor = balance,
+                        archived = existing?.archived ?: false,
+                    ),
+                )
+                true
+            }
         }
     }
 
@@ -663,11 +839,28 @@ class FinanceFeatureFragment : Fragment() {
     private fun form(vararg views: View): LinearLayout = LinearLayout(requireContext()).apply {
         orientation = LinearLayout.VERTICAL
         setPadding(dp(22), dp(10), dp(22), dp(6))
-        views.forEach { view -> addView(view, LinearLayout.LayoutParams(-1, if (view is EditText) dp(52) else dp(48)).apply { bottomMargin = dp(9) }) }
+        views.forEach { view ->
+            val height = when (view) {
+                is EditText -> dp(52)
+                is Button -> dp(48)
+                is TextView -> dp(20)
+                else -> dp(48)
+            }
+            addView(view, LinearLayout.LayoutParams(-1, height).apply { bottomMargin = dp(7) })
+        }
     }
 
     private fun input(hintText: String) = EditText(requireContext()).apply {
         hint = hintText; textSize = 15f; setSingleLine(true); setPadding(dp(12), dp(8), dp(12), dp(8))
+        setBackgroundResource(R.drawable.bg_input)
+    }
+
+    private fun categoryInput(hintText: String) = AutoCompleteTextView(requireContext()).apply {
+        hint = hintText
+        threshold = 1
+        textSize = 15f
+        setSingleLine(true)
+        setPadding(dp(12), dp(8), dp(12), dp(8))
         setBackgroundResource(R.drawable.bg_input)
     }
 

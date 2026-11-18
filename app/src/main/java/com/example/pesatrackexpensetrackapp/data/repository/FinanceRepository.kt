@@ -32,7 +32,9 @@ interface FinanceRepository {
     fun archiveCategory(uid: String, value: FinanceCategory, callback: (FinanceResult<Unit>) -> Unit)
     fun saveAccount(uid: String, value: FinanceAccount, callback: (FinanceResult<String>) -> Unit)
     fun archiveAccount(uid: String, value: FinanceAccount, callback: (FinanceResult<Unit>) -> Unit)
+    fun restoreAccount(uid: String, value: FinanceAccount, callback: (FinanceResult<Unit>) -> Unit)
     fun saveBudget(uid: String, value: MonthlyBudget, callback: (FinanceResult<String>) -> Unit)
+    fun deleteBudget(uid: String, value: MonthlyBudget, callback: (FinanceResult<Unit>) -> Unit)
     fun saveGoal(uid: String, value: SavingsGoal, callback: (FinanceResult<String>) -> Unit)
     fun addToGoal(uid: String, goalId: String, amountMinor: Long, callback: (FinanceResult<Unit>) -> Unit)
     fun archiveGoal(uid: String, value: SavingsGoal, callback: (FinanceResult<Unit>) -> Unit)
@@ -129,6 +131,9 @@ class FirestoreFinanceRepository(
     override fun archiveAccount(uid: String, value: FinanceAccount, callback: (FinanceResult<Unit>) -> Unit) =
         user(uid).collection("accounts").document(value.id).update("archived", true).complete(Unit, callback)
 
+    override fun restoreAccount(uid: String, value: FinanceAccount, callback: (FinanceResult<Unit>) -> Unit) =
+        user(uid).collection("accounts").document(value.id).update("archived", false).complete(Unit, callback)
+
     override fun saveBudget(uid: String, value: MonthlyBudget, callback: (FinanceResult<String>) -> Unit) {
         val id = "${value.month}_${value.categoryId}"
         val ref = user(uid).collection("budgets").document(id)
@@ -144,6 +149,11 @@ class FirestoreFinanceRepository(
             )
             Unit
         }.complete(id, callback)
+    }
+
+    override fun deleteBudget(uid: String, value: MonthlyBudget, callback: (FinanceResult<Unit>) -> Unit) {
+        val id = value.id.takeIf(String::isNotBlank) ?: "${value.month}_${value.categoryId}"
+        user(uid).collection("budgets").document(id).delete().complete(Unit, callback)
     }
 
     override fun saveGoal(uid: String, value: SavingsGoal, callback: (FinanceResult<String>) -> Unit) {
