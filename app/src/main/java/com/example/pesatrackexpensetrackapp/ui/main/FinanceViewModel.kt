@@ -57,12 +57,38 @@ class FinanceViewModel(
     }
 
     fun saveTransaction(value: FinanceTransaction) = perform { repository.saveTransaction(it, value, done("Transaction saved")) }
+    fun saveTransactionWithCategory(value: FinanceTransaction, categoryName: String) = perform { userId ->
+        ensureCategory(userId, categoryName, value.type) { result ->
+            when (result) {
+                is FinanceResult.Success -> repository.saveTransaction(
+                    userId,
+                    value.copy(categoryId = result.value),
+                    done("Transaction saved"),
+                )
+                is FinanceResult.Failure -> finish(result, "Could not save the category")
+            }
+        }
+    }
     fun deleteTransaction(id: String) = perform { repository.deleteTransaction(it, id, done("Transaction deleted")) }
     fun saveCategory(value: FinanceCategory) = perform { repository.saveCategory(it, value, done("Category saved")) }
     fun archiveCategory(value: FinanceCategory) = perform { repository.archiveCategory(it, value, done("Category archived")) }
     fun saveAccount(value: FinanceAccount) = perform { repository.saveAccount(it, value, done("Account saved")) }
     fun archiveAccount(value: FinanceAccount) = perform { repository.archiveAccount(it, value, done("Account archived")) }
+    fun restoreAccount(value: FinanceAccount) = perform { repository.restoreAccount(it, value, done("Account restored")) }
     fun saveBudget(value: MonthlyBudget) = perform { repository.saveBudget(it, value, done("Budget saved")) }
+    fun saveBudgetWithCategory(value: MonthlyBudget, categoryName: String) = perform { userId ->
+        ensureCategory(userId, categoryName, "EXPENSE") { result ->
+            when (result) {
+                is FinanceResult.Success -> repository.saveBudget(
+                    userId,
+                    value.copy(categoryId = result.value),
+                    done("Budget saved"),
+                )
+                is FinanceResult.Failure -> finish(result, "Could not save the category")
+            }
+        }
+    }
+    fun deleteBudget(value: MonthlyBudget) = perform { repository.deleteBudget(it, value, done("Budget deleted")) }
     fun saveGoal(value: SavingsGoal) = perform { repository.saveGoal(it, value, done("Savings goal saved")) }
     fun addToGoal(goalId: String, amountMinor: Long) = perform { repository.addToGoal(it, goalId, amountMinor, done("Contribution added")) }
     fun archiveGoal(value: SavingsGoal) = perform { repository.archiveGoal(it, value, done("Savings goal archived")) }
@@ -136,6 +162,32 @@ class FinanceViewModel(
 
     fun currentMonth(): String = Calendar.getInstance().let {
         "%04d-%02d".format(it.get(Calendar.YEAR), it.get(Calendar.MONTH) + 1)
+    }
+
+    private fun ensureCategory(
+        userId: String,
+        categoryName: String,
+        type: String,
+        callback: (FinanceResult<String>) -> Unit,
+    ) {
+        val normalizedName = categoryName.trim()
+        val existing = _categories.value.orEmpty().firstOrNull {
+            !it.archived && it.type == type && it.name.equals(normalizedName, ignoreCase = true)
+        }
+        if (existing != null) {
+            callback(FinanceResult.Success(existing.id))
+            return
+        }
+        repository.saveCategory(
+            userId,
+            FinanceCategory(
+                name = normalizedName,
+                type = type,
+                colorHex = "#B9674D",
+                sortOrder = (_categories.value.orEmpty().maxOfOrNull { it.sortOrder } ?: -1) + 1,
+            ),
+            callback,
+        )
     }
 
     override fun onCleared() {

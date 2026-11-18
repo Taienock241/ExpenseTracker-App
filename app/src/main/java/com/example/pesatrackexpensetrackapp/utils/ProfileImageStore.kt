@@ -10,6 +10,7 @@ import java.io.FileOutputStream
 /** Stores a small profile image inside this app's private files directory. */
 object ProfileImageStore {
     private const val MAX_IMAGE_DIMENSION = 512
+    private const val MAX_CROP_DIMENSION = 2048
 
     data class SaveResult(val saved: Boolean, val reason: String? = null)
 
@@ -18,40 +19,50 @@ object ProfileImageStore {
         return File(File(context.filesDir, "profile_images"), "$safeUserId.jpg")
     }
 
-    fun save(context: Context, userId: String, uri: Uri): SaveResult {
+    fun loadForCrop(context: Context, uri: Uri): Bitmap? {
         val source = File(context.cacheDir, "profile-source-${System.nanoTime()}")
         try {
             val input = context.contentResolver.openInputStream(uri)
-                ?: return SaveResult(false, "Android could not open the selected photo.")
+                ?: return null
             input.use { stream -> source.outputStream().use { output -> stream.copyTo(output) } }
 
             val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
             BitmapFactory.decodeFile(source.absolutePath, bounds)
-            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
-                return SaveResult(false, "This photo format is not supported. Choose a JPG or PNG image.")
-            }
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
 
             var sampleSize = 1
-            while (bounds.outWidth / sampleSize > MAX_IMAGE_DIMENSION ||
-                bounds.outHeight / sampleSize > MAX_IMAGE_DIMENSION
+            while (bounds.outWidth / sampleSize > MAX_CROP_DIMENSION ||
+                bounds.outHeight / sampleSize > MAX_CROP_DIMENSION
             ) sampleSize *= 2
 
-            val bitmap = BitmapFactory.decodeFile(
+            return BitmapFactory.decodeFile(
                 source.absolutePath,
                 BitmapFactory.Options().apply { inSampleSize = sampleSize },
-            ) ?: return SaveResult(false, "Android could not decode this photo. Choose a JPG or PNG image.")
+            )
+        } catch (exception: Exception) {
+            android.util.Log.e("ProfileImageStore", "Failed to read selected profile photo", exception)
+            return null
+        } finally {
+            source.delete()
+        }
+    }
 
+    fun save(context: Context, userId: String, crop: Bitmap): SaveResult {
+        try {
+            val destination = fileFor(context, userId)
+            val parent = destination.parentFile
+                ?: return SaveResult(false, "The app could not create a profile photo folder.")
+            if (!parent.exists() && !parent.mkdirs()) {
+                return SaveResult(false, "The app could not create a profile photo folder.")
+            }
+
+            val resized = if (crop.width > MAX_IMAGE_DIMENSION || crop.height > MAX_IMAGE_DIMENSION) {
+                Bitmap.createScaledBitmap(crop, MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION, true)
+            } else crop
             try {
-                val destination = fileFor(context, userId)
-                val parent = destination.parentFile
-                    ?: return SaveResult(false, "The app could not create a profile photo folder.")
-                if (!parent.exists() && !parent.mkdirs()) {
-                    return SaveResult(false, "The app could not create a profile photo folder.")
-                }
-
                 val temporary = File(parent, "${destination.name}.tmp")
                 val compressed = FileOutputStream(temporary).use { output ->
-                    val result = bitmap.compress(Bitmap.CompressFormat.JPEG, 86, output)
+                    val result = resized.compress(Bitmap.CompressFormat.JPEG, 88, output)
                     output.flush()
                     output.fd.sync()
                     result
@@ -70,13 +81,11 @@ object ProfileImageStore {
                 }
                 return SaveResult(true)
             } finally {
-                bitmap.recycle()
+                if (resized !== crop) resized.recycle()
             }
         } catch (exception: Exception) {
             android.util.Log.e("ProfileImageStore", "Failed to save selected profile photo", exception)
             return SaveResult(false, exception.localizedMessage ?: "An unexpected error occurred while saving the photo.")
-        } finally {
-            source.delete()
         }
     }
 }

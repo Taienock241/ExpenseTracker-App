@@ -42,7 +42,7 @@
     <string name="error_profile_setup">Your account was created, but setup could not finish. Sign in again when you have a connection.</string>
     <string name="error_default_setup">We couldn’t finish setting up your account. Check your connection and Firestore rules, then sign in again.</string>
     <string name="message_reset_sent">If an account exists for this email, password reset instructions will be sent.</string>
-    <string name="dashboard_hello">Hello, %1$s</string>
+    <string name="dashboard_hello">Good %1$s, %2$s</string>
     <string name="dashboard_subtitle">Here’s your money overview.</string>
     <string name="dashboard_balance">Total balance</string>
     <string name="dashboard_income">Income this month</string>
