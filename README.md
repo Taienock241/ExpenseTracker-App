@@ -2,6 +2,68 @@
 
 Android expense-tracking app built with Kotlin, XML layouts, Firebase Authentication, and Cloud Firestore.
 
+## How the app files connect
+
+This diagram shows the main path from app startup and screens to the view models, repositories, and Firebase. The XML layouts provide the screen views; the Kotlin activities and fragments control them.
+
+```mermaid
+flowchart TD
+    APP[PesaTrackApp.kt] --> CONTAINER[AppContainer.kt<br/>Creates repositories and ViewModel factories]
+
+    subgraph AUTH[Sign-in and registration]
+        AUTH_ACTIVITY[AuthActivity.kt] --> AUTH_LAYOUT[activity_auth.xml]
+        AUTH_ACTIVITY --> AUTH_NAV[nav_auth.xml]
+        AUTH_NAV --> AUTH_SCREENS[WelcomeFragment<br/>LoginFragment<br/>RegisterFragment<br/>ForgotPasswordFragment]
+        AUTH_SCREENS --> AUTH_VM[AuthViewModel.kt]
+        AUTH_VM --> AUTH_REPO[AuthRepository]
+        AUTH_VM --> USER_REPO[UserRepository]
+        AUTH_VM --> SETUP_REPO[UserSetupRepository]
+        AUTH_REPO --> FIREBASE_AUTH[Firebase Authentication]
+        USER_REPO --> FIRESTORE_USER[FirestoreUserRepository]
+        SETUP_REPO --> FIRESTORE_SETUP[FirestoreUserSetupRepository<br/>Seeds default categories and Cash account]
+        FIRESTORE_USER --> FIRESTORE[(Cloud Firestore)]
+        FIRESTORE_SETUP --> FIRESTORE
+    end
+
+    subgraph MAIN[Signed-in app]
+        MAIN_ACTIVITY[MainActivity.kt] --> MAIN_LAYOUT[activity_main.xml<br/>Bottom navigation and NavHost]
+        MAIN_ACTIVITY --> MAIN_NAV[nav_main.xml]
+        MAIN_NAV --> DASHBOARD[DashboardFragment.kt]
+        MAIN_NAV --> FINANCE[FinanceFeatureFragment.kt<br/>Transactions, budgets, reports, accounts,<br/>categories, goals, recurring, profile]
+        MAIN_NAV --> MORE[MoreFragment.kt]
+        DASHBOARD --> DASH_XML[fragment_dashboard.xml]
+        FINANCE --> FINANCE_XML[fragment_finance.xml]
+        MORE --> MORE_XML[fragment_more.xml]
+        DASHBOARD --> MAIN_VM[MainViewModel.kt]
+        DASHBOARD --> FINANCE_VM[FinanceViewModel.kt]
+        FINANCE --> FINANCE_VM
+        MORE --> FINANCE_VM
+        FINANCE_VM --> FINANCE_REPO[FinanceRepository]
+        FINANCE_REPO --> FIRESTORE_FINANCE[FirestoreFinanceRepository]
+        FIRESTORE_FINANCE --> FIRESTORE
+    end
+
+    CONTAINER -. supplies factories .-> AUTH_VM
+    CONTAINER -. supplies factories .-> MAIN_VM
+    CONTAINER -. supplies factories .-> FINANCE_VM
+    MODELS[data/model/FinanceModels.kt] -. data objects .-> FINANCE_VM
+    COMMON[utils/<br/>SessionManager.kt<br/>ProfileImageStore.kt<br/>WindowInsets.kt<br/>Event.kt] -. shared helpers .-> MAIN_ACTIVITY
+    COMMON -. shared helpers .-> DASHBOARD
+    COMMON -. shared helpers .-> FINANCE
+```
+
+### Where to start reading
+
+| If you are changing… | Start with… | Also check… |
+| --- | --- | --- |
+| App startup or dependency wiring | `PesaTrackApp.kt`, `AppContainer.kt` | `MainActivity.kt`, `AuthActivity.kt` |
+| A screen’s appearance | `app/src/main/res/layout/` | The matching Kotlin Fragment and `values/` resources |
+| Navigation | `app/src/main/res/navigation/` | `MainActivity.kt` |
+| Sign-in or registration | `ui/auth/` | `data/repository/AuthRepository.kt`, `AuthViewModel.kt` |
+| Transactions, budgets, or accounts | `ui/main/FinanceFeatureFragment.kt` | `FinanceViewModel.kt`, `data/repository/FinanceRepository.kt`, `FinanceModels.kt` |
+| Firebase data behavior | `data/repository/` | Matching view model and `AppContainer.kt` |
+| Shared app behavior | `utils/` | Activities or fragments that use the helper |
+
 ## Team workflow and change rules
 
 These rules apply to every contributor. Ask the team leader before making a change when its scope or impact is unclear.
