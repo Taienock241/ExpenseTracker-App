@@ -38,6 +38,7 @@ import com.example.pesatrackexpensetrackapp.data.model.SavingsGoal
 import com.example.pesatrackexpensetrackapp.databinding.FragmentFinanceBinding
 import com.example.pesatrackexpensetrackapp.utils.ProfileImageStore
 import com.example.pesatrackexpensetrackapp.utils.ProfilePhotoCropView
+import com.example.pesatrackexpensetrackapp.utils.AppTypography
 import com.example.pesatrackexpensetrackapp.utils.profileInitial
 import com.example.pesatrackexpensetrackapp.utils.renderProfileAvatar
 import java.text.NumberFormat
@@ -340,6 +341,7 @@ class FinanceFeatureFragment : Fragment() {
         isAllCaps = false
         setTextColor(ContextCompat.getColor(requireContext(), R.color.forest_700))
         setBackgroundResource(R.drawable.bg_secondary_button)
+        AppTypography.apply(this)
         setOnClickListener { onClick() }
     }
 
@@ -427,6 +429,7 @@ class FinanceFeatureFragment : Fragment() {
         }
         Button(requireContext()).apply {
             text = "Sign out"; isAllCaps = false; setTextColor(ContextCompat.getColor(requireContext(), R.color.coral)); setBackgroundResource(R.drawable.bg_secondary_button)
+            AppTypography.apply(this)
             setOnClickListener { confirm("Sign out?", "You can sign back in at any time.") { main.signOut() } }
             rows.addView(this, LinearLayout.LayoutParams(-1, dp(50)).apply { topMargin = dp(10) })
         }
@@ -846,6 +849,7 @@ class FinanceFeatureFragment : Fragment() {
                 is TextView -> dp(20)
                 else -> dp(48)
             }
+            AppTypography.apply(view)
             addView(view, LinearLayout.LayoutParams(-1, height).apply { bottomMargin = dp(7) })
         }
     }
@@ -853,6 +857,7 @@ class FinanceFeatureFragment : Fragment() {
     private fun input(hintText: String) = EditText(requireContext()).apply {
         hint = hintText; textSize = 15f; setSingleLine(true); setPadding(dp(12), dp(8), dp(12), dp(8))
         setBackgroundResource(R.drawable.bg_input)
+        AppTypography.apply(this)
     }
 
     private fun categoryInput(hintText: String) = AutoCompleteTextView(requireContext()).apply {
@@ -862,6 +867,7 @@ class FinanceFeatureFragment : Fragment() {
         setSingleLine(true)
         setPadding(dp(12), dp(8), dp(12), dp(8))
         setBackgroundResource(R.drawable.bg_input)
+        AppTypography.apply(this)
     }
 
     private fun spinner(items: List<String>, selected: Int = 0) = Spinner(requireContext()).apply {
@@ -870,7 +876,15 @@ class FinanceFeatureFragment : Fragment() {
         isEnabled = items.isNotEmpty()
     }
 
-    private fun adapter(items: List<String>) = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, items)
+    private fun adapter(items: List<String>) = object : ArrayAdapter<String>(
+        requireContext(), android.R.layout.simple_spinner_dropdown_item, items,
+    ) {
+        override fun getView(position: Int, convertView: View?, parent: ViewGroup): View =
+            super.getView(position, convertView, parent).also(AppTypography::apply)
+
+        override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View =
+            super.getDropDownView(position, convertView, parent).also(AppTypography::apply)
+    }
 
     private fun confirm(title: String, message: String, action: () -> Unit) {
         activeDialog = AlertDialog.Builder(requireContext()).setTitle(title).setMessage(message)
@@ -910,6 +924,7 @@ class FinanceFeatureFragment : Fragment() {
     private fun text(value: String, sp: Int, color: Int, bold: Boolean = false) = TextView(requireContext()).apply {
         text = value; textSize = sp.toFloat(); setTextColor(ContextCompat.getColor(requireContext(), color))
         if (bold) setTypeface(typeface, android.graphics.Typeface.BOLD)
+        AppTypography.apply(this)
     }
 
     private fun toast(message: String) = Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()

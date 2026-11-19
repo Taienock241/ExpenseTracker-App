@@ -7,6 +7,7 @@ import androidx.fragment.app.FragmentActivity
 import com.example.pesatrackexpensetrackapp.PesaTrackApp
 import com.example.pesatrackexpensetrackapp.databinding.ActivityAuthBinding
 import com.example.pesatrackexpensetrackapp.MainActivity
+import com.example.pesatrackexpensetrackapp.utils.AppTypography
 import com.example.pesatrackexpensetrackapp.utils.applySystemBarInsets
 
 class AuthActivity : FragmentActivity() {
@@ -17,8 +18,10 @@ class AuthActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        AppTypography.installOnFragments(this)
         binding = ActivityAuthBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        AppTypography.apply(binding.root)
         binding.root.applySystemBarInsets()
 
         viewModel.authenticated.observe(this) { event ->
