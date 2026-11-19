@@ -16,6 +16,7 @@ import com.example.pesatrackexpensetrackapp.databinding.FragmentDashboardBinding
 import com.example.pesatrackexpensetrackapp.ui.main.MainViewModel
 import com.example.pesatrackexpensetrackapp.ui.main.FinanceViewModel
 import com.example.pesatrackexpensetrackapp.utils.renderProfileAvatar
+import com.example.pesatrackexpensetrackapp.utils.AppTypography
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -131,6 +132,7 @@ class DashboardFragment : Fragment() {
                 setTextColor(ContextCompat.getColor(requireContext(), R.color.text_muted))
                 setPadding(dp(17), dp(17), dp(17), dp(17))
                 setBackgroundResource(R.drawable.bg_card)
+                AppTypography.apply(this)
             })
         } else {
             transactions.take(4).forEach { transaction ->
@@ -146,12 +148,14 @@ class DashboardFragment : Fragment() {
                     textSize = 14f
                     setTypeface(typeface, android.graphics.Typeface.BOLD)
                     setTextColor(ContextCompat.getColor(requireContext(), R.color.text_primary))
+                    AppTypography.apply(this)
                 }, LinearLayout.LayoutParams(0, -2, 1f))
                 headline.addView(TextView(requireContext()).apply {
                     text = (if (transaction.type == "INCOME") "+ " else "− ") + displayMoney(transaction.amountMinor)
                     textSize = 13f
                     setTypeface(typeface, android.graphics.Typeface.BOLD)
                     setTextColor(ContextCompat.getColor(requireContext(), if (transaction.type == "INCOME") R.color.green_500 else R.color.text_primary))
+                    AppTypography.apply(this)
                 })
                 row.addView(headline)
                 row.addView(TextView(requireContext()).apply {
@@ -159,6 +163,7 @@ class DashboardFragment : Fragment() {
                     textSize = 11f
                     setTextColor(ContextCompat.getColor(requireContext(), R.color.text_muted))
                     setPadding(0, dp(4), 0, 0)
+                    AppTypography.apply(this)
                 })
                 container.addView(row, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })
             }

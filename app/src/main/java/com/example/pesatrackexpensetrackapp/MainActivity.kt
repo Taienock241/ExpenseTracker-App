@@ -1,7 +1,6 @@
 package com.example.pesatrackexpensetrackapp
 
 import android.content.Intent
-import android.graphics.Typeface
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -17,6 +16,7 @@ import com.example.pesatrackexpensetrackapp.databinding.ActivityMainBinding
 import com.example.pesatrackexpensetrackapp.ui.auth.AuthActivity
 import com.example.pesatrackexpensetrackapp.ui.main.MainViewModel
 import com.example.pesatrackexpensetrackapp.utils.SessionManager
+import com.example.pesatrackexpensetrackapp.utils.AppTypography
 import com.example.pesatrackexpensetrackapp.utils.applySystemBarInsets
 
 class MainActivity : FragmentActivity() {
@@ -60,8 +60,10 @@ class MainActivity : FragmentActivity() {
         sessionManager.recordActivity()
         sessionActive = true
 
+        AppTypography.installOnFragments(this)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        AppTypography.apply(binding.root)
         binding.root.applySystemBarInsets()
         val navHost = supportFragmentManager.findFragmentById(R.id.mainNavHost) as NavHostFragment
         navController = navHost.navController
@@ -160,7 +162,7 @@ class MainActivity : FragmentActivity() {
         destinations.forEach { (button, destination) ->
             val selected = destination == currentDestination
             button.isSelected = selected
-            button.setTypeface(null, if (selected) Typeface.BOLD else Typeface.NORMAL)
+            button.setTypeface(AppTypography.typeface(button.context, selected))
         }
     }
 
