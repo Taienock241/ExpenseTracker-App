@@ -28,6 +28,8 @@ class FinanceViewModel(
 
     private val _transactions = MutableLiveData<List<FinanceTransaction>>(emptyList())
     val transactions: LiveData<List<FinanceTransaction>> = _transactions
+    private val _transactionsLoaded = MutableLiveData(false)
+    val transactionsLoaded: LiveData<Boolean> = _transactionsLoaded
     private val _categories = MutableLiveData<List<FinanceCategory>>(emptyList())
     val categories: LiveData<List<FinanceCategory>> = _categories
     private val _accounts = MutableLiveData<List<FinanceAccount>>(emptyList())
@@ -47,7 +49,18 @@ class FinanceViewModel(
     val profileUpdated: LiveData<Event<Unit>> = _profileUpdated
     init {
         uid?.let { userId ->
-            registrations += repository.watchTransactions(userId) { it.receive(_transactions) }
+            registrations += repository.watchTransactions(userId) { result ->
+                when (result) {
+                    is FinanceResult.Success -> {
+                        _transactions.value = result.value
+                        _transactionsLoaded.value = true
+                    }
+                    is FinanceResult.Failure -> {
+                        _transactionsLoaded.value = true
+                        result.receive(_transactions)
+                    }
+                }
+            }
             registrations += repository.watchCategories(userId) { it.receive(_categories) }
             registrations += repository.watchAccounts(userId) { it.receive(_accounts) }
             registrations += repository.watchBudgets(userId) { it.receive(_budgets) }
