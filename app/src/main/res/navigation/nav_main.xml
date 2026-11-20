@@ -25,10 +25,8 @@
 
     <fragment
         android:id="@+id/reportsFragment"
-        android:name="com.example.pesatrackexpensetrackapp.ui.main.FinanceFeatureFragment"
-        android:label="@string/reports_title">
-        <argument android:name="title" app:argType="reference" android:defaultValue="@string/reports_title" />
-    </fragment>
+        android:name="com.example.pesatrackexpensetrackapp.ui.main.ReportFragment"
+        android:label="@string/reports_title" />
 
     <fragment
         android:id="@+id/moreFragment"
