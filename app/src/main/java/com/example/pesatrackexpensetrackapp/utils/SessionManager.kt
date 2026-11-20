@@ -22,7 +22,7 @@ class SessionManager(context: Context) {
     }
 
     companion object {
-        const val SESSION_TIMEOUT_MILLIS = 30L * 60L * 1000L
+        const val SESSION_TIMEOUT_MILLIS = 5L * 60L * 1000L
         private const val PREFERENCES_NAME = "pesatrack_session"
         private const val KEY_LAST_ACTIVITY = "last_activity_at"
     }

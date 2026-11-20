@@ -6,6 +6,8 @@
     <string name="welcome_sign_up">Create an account</string>
     <string name="welcome_sign_in">I already have an account</string>
     <string name="auth_back">Back</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_fingerprint_unlock">Unlock with fingerprint</string>
     <string name="action_back">‹  Back</string>
     <string name="login_title">Welcome back</string>
     <string name="login_subtitle">Sign in to continue to your money overview.</string>

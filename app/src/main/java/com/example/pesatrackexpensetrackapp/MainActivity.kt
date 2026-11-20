@@ -16,6 +16,7 @@ import com.example.pesatrackexpensetrackapp.databinding.ActivityMainBinding
 import com.example.pesatrackexpensetrackapp.ui.auth.AuthActivity
 import com.example.pesatrackexpensetrackapp.ui.main.MainViewModel
 import com.example.pesatrackexpensetrackapp.utils.SessionManager
+import com.example.pesatrackexpensetrackapp.utils.BiometricUnlockManager
 import com.example.pesatrackexpensetrackapp.utils.AppTypography
 import com.example.pesatrackexpensetrackapp.utils.applySystemBarInsets
 
@@ -44,15 +45,18 @@ class MainActivity : FragmentActivity() {
 
         sessionManager = SessionManager(this)
         val container = (application as PesaTrackApp).container
-        if (container.authRepository.currentUser() == null) {
+        val currentUser = container.authRepository.currentUser()
+        if (currentUser == null) {
             sessionManager.clear()
             openAuth()
             return
         }
 
         if (sessionManager.isExpired()) {
-            sessionManager.clear()
-            container.authRepository.signOut()
+            if (!BiometricUnlockManager.isEnabled(this, currentUser.uid)) {
+                sessionManager.clear()
+                container.authRepository.signOut()
+            }
             openAuth()
             return
         }
@@ -144,8 +148,12 @@ class MainActivity : FragmentActivity() {
         if (!sessionActive) return
         sessionActive = false
         sessionHandler.removeCallbacks(sessionExpiryCheck)
-        sessionManager.clear()
-        (application as PesaTrackApp).container.authRepository.signOut()
+        val authRepository = (application as PesaTrackApp).container.authRepository
+        val currentUser = authRepository.currentUser()
+        if (currentUser == null || !BiometricUnlockManager.isEnabled(this, currentUser.uid)) {
+            sessionManager.clear()
+            authRepository.signOut()
+        }
         openAuth()
     }
 

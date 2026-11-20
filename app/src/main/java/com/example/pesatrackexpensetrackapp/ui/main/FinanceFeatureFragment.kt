@@ -39,6 +39,7 @@ import com.example.pesatrackexpensetrackapp.databinding.FragmentFinanceBinding
 import com.example.pesatrackexpensetrackapp.utils.ProfileImageStore
 import com.example.pesatrackexpensetrackapp.utils.ProfilePhotoCropView
 import com.example.pesatrackexpensetrackapp.utils.AppTypography
+import com.example.pesatrackexpensetrackapp.utils.BiometricUnlockManager
 import com.example.pesatrackexpensetrackapp.utils.profileInitial
 import com.example.pesatrackexpensetrackapp.utils.renderProfileAvatar
 import java.text.NumberFormat
@@ -426,6 +427,50 @@ class FinanceFeatureFragment : Fragment() {
         card(rows).apply {
             addView(rowText("Account security", "Firebase", false))
             addView(text("Your data is private to your signed-in account.", 12, R.color.text_muted).apply { setPadding(0, dp(5), 0, 0) })
+        }
+        if (!user?.uid.isNullOrBlank()) {
+            val userId = user!!.uid
+            val biometricEnabled = BiometricUnlockManager.isEnabled(requireContext(), userId)
+            card(rows).apply {
+                addView(rowText("Fingerprint unlock", if (biometricEnabled) "Enabled" else "Off", false))
+                addView(
+                    text(
+                        "After five idle minutes, use your device biometric instead of entering your password again.",
+                        12,
+                        R.color.text_muted,
+                    ).apply { setPadding(0, dp(5), 0, dp(9)) },
+                )
+                addView(Button(requireContext()).apply {
+                    text = if (biometricEnabled) "Turn off fingerprint unlock" else "Enable fingerprint unlock"
+                    isAllCaps = false
+                    setTextColor(ContextCompat.getColor(requireContext(), R.color.forest_700))
+                    setBackgroundResource(R.drawable.bg_secondary_button)
+                    AppTypography.apply(this)
+                    setOnClickListener {
+                        if (biometricEnabled) {
+                            confirm("Turn off fingerprint unlock?", "You will need your password after the app locks.") {
+                                BiometricUnlockManager.setEnabled(requireContext(), userId, false)
+                                render()
+                            }
+                        } else if (!BiometricUnlockManager.isAvailable(requireContext())) {
+                            toast("Set up a fingerprint or other strong biometric on this device first.")
+                        } else {
+                            BiometricUnlockManager.authenticate(
+                                requireActivity() as androidx.fragment.app.FragmentActivity,
+                                userId,
+                                "Enable fingerprint unlock",
+                                "Confirm with your device biometric to enable quick unlock.",
+                                onSuccess = {
+                                    BiometricUnlockManager.setEnabled(requireContext(), userId, true)
+                                    if (_binding != null && screenId == R.id.profileFragment) render()
+                                    toast("Fingerprint unlock enabled")
+                                },
+                                onError = ::toast,
+                            )
+                        }
+                    }
+                }, LinearLayout.LayoutParams(-1, dp(46)).apply { topMargin = dp(8) })
+            }
         }
         Button(requireContext()).apply {
             text = "Sign out"; isAllCaps = false; setTextColor(ContextCompat.getColor(requireContext(), R.color.coral)); setBackgroundResource(R.drawable.bg_secondary_button)
