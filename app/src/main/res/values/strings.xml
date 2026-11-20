@@ -7,30 +7,30 @@
     <string name="welcome_sign_in">I already have an account</string>
     <string name="auth_back">Back</string>
     <string name="action_back">‹  Back</string>
-    <string name="login_title">Welcome back</string>
-    <string name="login_subtitle">Sign in to continue to your money overview.</string>
+    <string name="login_title">Welcome Back</string>
+    <string name="login_subtitle">Sign in to continue to your account.</string>
     <string name="login_form_heading">Your account</string>
     <string name="login_form_hint">Enter your details to pick up where you left off.</string>
-    <string name="login_email_label">EMAIL ADDRESS</string>
-    <string name="login_password_label">PASSWORD</string>
+    <string name="login_email_label">Email Address</string>
+    <string name="login_password_label">Password</string>
     <string name="login_privacy_note">Your financial information stays private and secure.</string>
-    <string name="register_title">Create your account</string>
-    <string name="register_subtitle">A simple place to keep your finances organized.</string>
+    <string name="register_title">Create Account</string>
+    <string name="register_subtitle">Fill in your details to get started.</string>
     <string name="reset_title">Reset your password</string>
     <string name="reset_subtitle">Enter your email and we’ll send reset instructions if an account exists.</string>
     <string name="field_name">Full name</string>
     <string name="field_email">Email address</string>
     <string name="field_password">Password</string>
     <string name="field_confirm_password">Confirm password</string>
-    <string name="action_sign_in">Sign in</string>
-    <string name="action_sign_up">Create account</string>
+    <string name="action_sign_in">Sign In</string>
+    <string name="action_sign_up">Create Account</string>
     <string name="action_send_reset">Send reset link</string>
-    <string name="action_forgot_password">Forgot password?</string>
-    <string name="prompt_no_account">New here?</string>
+    <string name="action_forgot_password">Forgot Password?</string>
+    <string name="prompt_no_account">Don’t have an account?</string>
     <string name="prompt_has_account">Already have an account?</string>
-    <string name="action_register">Register</string>
-    <string name="action_login">Log in</string>
-    <string name="error_name_required">Enter your name using 2–40 characters.</string>
+    <string name="action_register">Sign Up</string>
+    <string name="action_login">Sign In</string>
+    <string name="error_name_required">Your first and last name together must be 2–40 characters.</string>
     <string name="error_email_required">Enter a valid email address.</string>
     <string name="error_password_required">Enter your password.</string>
     <string name="error_password_rules">Use at least 8 characters, including a letter and a number.</string>
@@ -88,4 +88,33 @@
     <string name="dashboard_expense_amount">KSh 0.00</string>
     <string name="dashboard_month_label">CURRENT BALANCE</string>
     <string name="dashboard_first_run">Your balance and activity will appear here as you start tracking your money.</string>
+
+    <!-- Authentication redesign -->
+    <string name="label_first_name">First Name</string>
+    <string name="label_last_name">Last Name</string>
+    <string name="label_confirm_password">Confirm Password</string>
+    <string name="hint_first_name">Enter your first name</string>
+    <string name="hint_last_name">Enter your last name</string>
+    <string name="hint_email">you@example.com</string>
+    <string name="hint_password">Enter your password</string>
+    <string name="hint_create_password">Create a password</string>
+    <string name="hint_confirm_password">Re-enter your password</string>
+    <string name="error_first_name_required">Enter your first name.</string>
+    <string name="error_last_name_required">Enter your last name.</string>
+    <string name="show_password">Show password</string>
+    <string name="hide_password">Hide password</string>
+    <string name="req_min_length">At least 8 characters</string>
+    <string name="req_letter">At least one letter</string>
+    <string name="req_number">At least one number</string>
+    <string name="requirement_met">%1$s, met</string>
+    <string name="requirement_unmet">%1$s, not met yet</string>
+
+    <!-- Fingerprint sign-in -->
+    <string name="action_sign_in_fingerprint">Sign in with fingerprint</string>
+    <string name="biometric_login_title">Sign in with fingerprint</string>
+    <string name="biometric_login_subtitle">Confirm it’s you to continue</string>
+    <string name="biometric_cancel">Use password</string>
+    <string name="biometric_reset_needed">Fingerprint sign-in needs to be set up again. Sign in with your password, then turn it on in Profile.</string>
+    <string name="biometric_out_of_date">Your saved fingerprint sign-in is out of date. Sign in with your password, then turn it on again in Profile.</string>
+    <string name="biometric_failed">Fingerprint sign-in failed. Please sign in with your password.</string>
 </resources>

@@ -22,4 +22,5 @@
     <color name="nav_background">#302722</color>
     <color name="nav_selected">#FFAF94</color>
     <color name="nav_unselected">#B7A39A</color>
+    <color name="auth_button_disabled">#7FAE9B</color>
 </resources>
