@@ -7,6 +7,8 @@ import android.os.Looper
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.os.Build
+import android.text.InputType
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -19,6 +21,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.Spinner
+import android.widget.Switch
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
@@ -36,6 +39,10 @@ import com.example.pesatrackexpensetrackapp.data.model.MonthlyBudget
 import com.example.pesatrackexpensetrackapp.data.model.RecurringItem
 import com.example.pesatrackexpensetrackapp.data.model.SavingsGoal
 import com.example.pesatrackexpensetrackapp.databinding.FragmentFinanceBinding
+import com.example.pesatrackexpensetrackapp.data.repository.AuthResult
+import com.example.pesatrackexpensetrackapp.utils.BiometricAuth
+import com.example.pesatrackexpensetrackapp.utils.BiometricCredentialStore
+import com.example.pesatrackexpensetrackapp.utils.BiometricSupport
 import com.example.pesatrackexpensetrackapp.utils.ProfileImageStore
 import com.example.pesatrackexpensetrackapp.utils.ProfilePhotoCropView
 import com.example.pesatrackexpensetrackapp.utils.AppTypography
@@ -423,6 +430,7 @@ class FinanceFeatureFragment : Fragment() {
             addView(rowText("Currency", "Kenyan shilling", false))
             addView(text("Amounts are stored in Kenyan shillings (KES).", 12, R.color.text_muted).apply { setPadding(0, dp(5), 0, 0) })
         }
+        renderFingerprintCard(rows)
         card(rows).apply {
             addView(rowText("Account security", "Firebase", false))
             addView(text("Your data is private to your signed-in account.", 12, R.color.text_muted).apply { setPadding(0, dp(5), 0, 0) })
@@ -433,6 +441,130 @@ class FinanceFeatureFragment : Fragment() {
             setOnClickListener { confirm("Sign out?", "You can sign back in at any time.") { main.signOut() } }
             rows.addView(this, LinearLayout.LayoutParams(-1, dp(50)).apply { topMargin = dp(10) })
         }
+    }
+
+    private fun renderFingerprintCard(rows: LinearLayout) {
+        val context = requireContext()
+        val store = BiometricCredentialStore(context)
+        val availability = BiometricSupport.availability(context)
+        val enabled = store.isEnabled()
+        val card = card(rows)
+        val header = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL; gravity = android.view.Gravity.CENTER_VERTICAL }
+        val labels = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
+        labels.addView(text("Fingerprint sign-in", 14, R.color.text_primary, true))
+        labels.addView(text(
+            when {
+                availability == BiometricSupport.Availability.UNSUPPORTED && !enabled -> "Not available on this device."
+                availability == BiometricSupport.Availability.NOT_ENROLLED && !enabled -> "Add a fingerprint in your phone's settings first."
+                enabled -> "On. Use your fingerprint on the sign-in screen."
+                else -> "Sign in with your fingerprint instead of typing your password."
+            },
+            12, R.color.text_muted,
+        ).apply { setPadding(0, dp(3), dp(10), 0) })
+        header.addView(labels, LinearLayout.LayoutParams(0, -2, 1f))
+        val toggle = Switch(context).apply {
+            isChecked = enabled
+            isEnabled = enabled || availability == BiometricSupport.Availability.AVAILABLE
+            contentDescription = "Fingerprint sign-in"
+        }
+        toggle.setOnClickListener {
+            if (toggle.isChecked) enableFingerprintSignIn(store, toggle) else disableFingerprintSignIn(store, toggle)
+        }
+        header.addView(toggle)
+        card.addView(header)
+    }
+
+    private fun enableFingerprintSignIn(store: BiometricCredentialStore, toggle: Switch) {
+        val email = main.currentUser?.email
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P || email.isNullOrBlank()) {
+            toggle.isChecked = false
+            toast("Fingerprint sign-in isn't available right now.")
+            return
+        }
+        // The password is needed once, to store it encrypted. It is checked with Firebase before being saved.
+        val password = input("Password").apply { inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD }
+        val dialog = AlertDialog.Builder(requireContext())
+            .setTitle("Turn on fingerprint sign-in")
+            .setMessage("Enter your password to confirm it's you. It is stored encrypted on this phone and can only be unlocked with your fingerprint.")
+            .setView(form(password))
+            .setNegativeButton("Cancel", null)
+            .setPositiveButton("Continue", null)
+            .create()
+        dialog.setOnCancelListener { toggle.isChecked = false }
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setOnClickListener { toggle.isChecked = false; dialog.dismiss() }
+            val continueButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+            continueButton.setOnClickListener {
+                val value = password.text.toString()
+                if (value.isBlank()) { password.error = "Enter your password"; return@setOnClickListener }
+                continueButton.isEnabled = false
+                val authRepository = (requireActivity().application as PesaTrackApp).container.authRepository
+                authRepository.signIn(email, value) { result ->
+                    if (_binding != null) {
+                        continueButton.isEnabled = true
+                        if (result is AuthResult.Failure) {
+                            password.error = "Incorrect password"
+                        } else {
+                            dialog.dismiss()
+                            scanToStoreCredentials(store, toggle, email, value)
+                        }
+                    }
+                }
+            }
+        }
+        activeDialog = dialog
+        dialog.show()
+    }
+
+    private fun scanToStoreCredentials(store: BiometricCredentialStore, toggle: Switch, email: String, password: String) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return
+        val cipher = try {
+            store.createEnrollmentCipher()
+        } catch (e: Exception) {
+            toggle.isChecked = false
+            toast("Couldn't set up fingerprint sign-in. Make sure a fingerprint is saved on this phone.")
+            return
+        }
+        BiometricAuth.authenticate(
+            context = requireContext(),
+            title = "Turn on fingerprint sign-in",
+            subtitle = "Scan your fingerprint to finish",
+            negativeText = "Cancel",
+            cipher = cipher,
+            onSuccess = { unlocked ->
+                if (_binding != null) {
+                    if (store.save(unlocked, email, password)) {
+                        toast("Fingerprint sign-in is on")
+                        toggle.isChecked = true
+                    } else {
+                        toggle.isChecked = false
+                        toast("Couldn't save fingerprint sign-in. Please try again.")
+                    }
+                }
+            },
+            onFailure = { message ->
+                if (_binding != null) {
+                    store.clear()
+                    toggle.isChecked = false
+                    if (message != null) toast(message)
+                }
+            },
+        )
+    }
+
+    private fun disableFingerprintSignIn(store: BiometricCredentialStore, toggle: Switch) {
+        val dialog = AlertDialog.Builder(requireContext())
+            .setTitle("Turn off fingerprint sign-in?")
+            .setMessage("Your saved sign-in is removed from this phone. You can turn it on again any time.")
+            .setNegativeButton("Cancel") { _, _ -> toggle.isChecked = true }
+            .setPositiveButton("Turn off") { _, _ ->
+                store.clear()
+                toast("Fingerprint sign-in is off")
+            }
+            .create()
+        dialog.setOnCancelListener { toggle.isChecked = true }
+        activeDialog = dialog
+        dialog.show()
     }
 
     private fun renderProfilePhoto(rows: LinearLayout, userId: String) {

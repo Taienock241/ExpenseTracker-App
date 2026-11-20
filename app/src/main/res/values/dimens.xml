@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Side padding of the authentication forms; larger screens get wider margins so the form stays narrow. -->
+    <dimen name="auth_horizontal_padding">24dp</dimen>
+</resources>
