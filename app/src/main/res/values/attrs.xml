@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="AuthField">
+        <attr name="fieldLabel" format="string" />
+        <attr name="android:hint" />
+        <attr name="android:inputType" />
+        <attr name="android:imeOptions" />
+    </declare-styleable>
+
+    <declare-styleable name="AuthHeader">
+        <attr name="headerTitle" format="string" />
+        <attr name="headerSubtitle" format="string" />
+    </declare-styleable>
+</resources>
